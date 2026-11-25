@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer Master{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">Customer Master</h3>
+        <p class="text-muted small mb-0">Manage wholesale distributors and retail buyers, tax jurisdictions, and sales routes.</p>
+    </div>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newCustomerModal">
+        <i class="bi bi-person-plus me-1"></i> Add Customer
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Customer Name</th>
+                    <th>Type</th>
+                    <th>State</th>
+                    <th>GSTIN</th>
+                    <th>Tax Rule</th>
+                    <th>Assigned Salesman</th>
+                    <th>Phone / Contact</th>
+                    <th class="text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in customers %}
+                <tr>
+                    <td class="fw-bold">{{ c.name }}</td>
+                    <td><span class="badge bg-light text-secondary border">{{ c.get_customer_type_display }}</span></td>
+                    <td>{{ c.state }}</td>
+                    <td><code>{{ c.gstin|default:"URP / Unregistered" }}</code></td>
+                    <td>
+                        {% if c.is_interstate %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-arrow-left-right me-1"></i> Inter-state (IGST)</span>
+                        {% else %}
+                        <span class="badge bg-info bg-opacity-10 text-primary"><i class="bi bi-building me-1"></i> Intra-state (CGST+SGST)</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ c.assigned_salesman.first_name|default:c.assigned_salesman.username|default:"Unassigned" }}</td>
+                    <td>{{ c.phone }}</td>
+                    <td class="text-center">
+                        {% if c.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center py-4 text-muted">No customers registered yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Add Customer -->
+<div class="modal fade" id="newCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Register Customer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Customer Trade Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Annapoorna Stores" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Customer Type</label>
+                            <select name="customer_type" class="form-select">
+                                <option value="RETAILER">Retailer</option>
+                                <option value="DISTRIBUTOR">Distributor</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">State</label>
+                            <input type="text" name="state" class="form-control" value="Tamil Nadu" required>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">GSTIN</label>
+                            <input type="text" name="gstin" class="form-control" placeholder="15-digit GSTIN">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Assigned Salesman</label>
+                            <select name="assigned_salesman" class="form-select">
+                                <option value="">-- None --</option>
+                                {% for s in salesmen %}
+                                <option value="{{ s.id }}">{{ s.first_name|default:s.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Billing Address</label>
+                        <textarea name="billing_address" class="form-control" rows="2" required></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Phone Number</label>
+                            <input type="text" name="phone" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Email Address</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Save Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

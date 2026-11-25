@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Units of Measure & Conversion{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">Units of Measure & Conversion Logic</h3>
+        <p class="text-muted small mb-0">Centralized unit conversions for weights, volumes, individual counts and cartons.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-lg-7">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-rulers me-2 text-primary"></i>Configured Measurement Units</div>
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Unit Name</th>
+                            <th>Physical Category</th>
+                            <th>Base Unit Reference</th>
+                            <th>Conversion Factor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in uoms %}
+                        <tr>
+                            <td class="fw-bold"><span class="badge bg-light text-dark border">{{ u.code }}</span></td>
+                            <td>{{ u.name }}</td>
+                            <td><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ u.get_category_display }}</span></td>
+                            <td>{{ u.base_unit.code|default:"Base Standard" }}</td>
+                            <td><code>{{ u.conversion_factor }}</code></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Conversion Test Tool -->
+    <div class="col-12 col-lg-5">
+        <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-arrow-repeat me-2 text-success"></i>Interactive Unit Conversion Engine</div>
+            <div class="card-body">
+                <p class="small text-muted">Test mathematical and container-level conversions (e.g. 9 cartons to packets based on product carton capacity).</p>
+
+                {% if converted_result %}
+                <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-check-circle-fill fs-5"></i>
+                    <div class="fw-bold">{{ converted_result }}</div>
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="convert" value="1">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Quantity</label>
+                        <input type="number" step="0.001" name="quantity" class="form-control" value="9" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">From Unit</label>
+                            <select name="from_uom" class="form-select" required>
+                                {% for u in uoms %}
+                                <option value="{{ u.id }}" {% if u.code == 'ctn' %}selected{% endif %}>{{ u.name }} ({{ u.code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">To Unit</label>
+                            <select name="to_uom" class="form-select" required>
+                                {% for u in uoms %}
+                                <option value="{{ u.id }}" {% if u.code == 'pkt' %}selected{% endif %}>{{ u.name }} ({{ u.code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Product (Required for Cartons)</label>
+                        <select name="product" class="form-select">
+                            <option value="">-- None (Physical units only) --</option>
+                            {% for p in products %}
+                            <option value="{{ p.id }}" selected>{{ p.name }} ({{ p.pieces_per_carton }} pkts/carton)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 btn-sm">
+                        <i class="bi bi-calculator me-1"></i> Calculate Conversion
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

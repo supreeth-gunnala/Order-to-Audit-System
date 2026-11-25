@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Order-to-Audit ERP{% endblock %} | {{ FACTORY_NAME }}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+    <style>
+        :root {
+            --primary-navy: #0f172a;
+            --sidebar-bg: #1e293b;
+            --accent-blue: #2563eb;
+            --accent-teal: #0d9488;
+            --bg-light: #f8fafc;
+            --card-border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            min-height: 100vh;
+            color: #cbd5e1;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+        }
+        .sidebar .brand {
+            padding: 1.25rem 1.5rem;
+            font-weight: 800;
+            font-size: 1.15rem;
+            color: #ffffff;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            letter-spacing: -0.02em;
+        }
+        .sidebar .nav-link {
+            color: #94a3b8;
+            padding: 0.65rem 1.25rem;
+            font-weight: 500;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-radius: 8px;
+            margin: 0.2rem 0.75rem;
+            transition: all 0.15s ease-in-out;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: #ffffff;
+            background-color: rgba(255,255,255,0.08);
+        }
+        .sidebar .nav-link.active {
+            background-color: var(--accent-blue);
+            color: #ffffff;
+        }
+        .sidebar .nav-header {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+            padding: 1rem 1.5rem 0.35rem;
+            font-weight: 700;
+        }
+        .topbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--card-border);
+            padding: 0.75rem 1.75rem;
+        }
+        .card {
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .card-header {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--card-border);
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+        }
+        .kpi-card {
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            background: #ffffff;
+            padding: 1.25rem;
+            transition: transform 0.15s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+        }
+        .kpi-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .kpi-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-top: 0.35rem;
+        }
+        .kpi-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+        .table > :not(caption) > * > * {
+            padding: 0.75rem 1rem;
+            vertical-align: middle;
+            font-size: 0.88rem;
+        }
+        .badge-status {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.35em 0.65em;
+            border-radius: 6px;
+        }
+        .btn {
+            font-weight: 600;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            padding: 0.5rem 1rem;
+        }
+        .btn-primary {
+            background-color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+            border-color: #1d4ed8;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="container-fluid p-0">
+    <div class="row g-0">
+        {% if user.is_authenticated %}
+        <!-- Sidebar Navigation -->
+        <div class="col-auto col-md-3 col-xl-2 px-0 sidebar d-flex flex-column">
+            <div class="brand d-flex align-items-center gap-2">
+                <i class="bi bi-box-seam-fill text-primary fs-4"></i>
+                <div>
+                    <div>Sri Krishna Foods</div>
+                    <div class="small fw-normal text-secondary" style="font-size: 0.72rem;">Order-to-Audit ERP</div>
+                </div>
+            </div>
+
+            <div class="p-3 pb-1 border-bottom border-secondary border-opacity-25">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 36px; height: 36px; font-size: 0.85rem;">
+                        {{ user.username|make_list|first|upper }}
+                    </div>
+                    <div class="overflow-hidden">
+                        <div class="text-white fw-bold text-truncate" style="font-size: 0.85rem;">{{ user.first_name|default:user.username }}</div>
+                        <span class="badge bg-primary bg-opacity-25 text-info" style="font-size: 0.7rem;">{{ user.get_role_display }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <ul class="nav flex-column mb-auto pt-2">
+                {% if is_owner or is_admin %}
+                <li class="nav-item">
+                    <a href="{% url 'core:owner_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'owner_dashboard' %}active{% endif %}">
+                        <i class="bi bi-speedometer2"></i> Owner Dashboard
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if is_salesman or is_admin %}
+                <div class="nav-header">Sales Operations</div>
+                <li class="nav-item">
+                    <a href="{% url 'sales:salesman_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'salesman_dashboard' %}active{% endif %}">
+                        <i class="bi bi-phone"></i> Mobile Order Portal
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'sales:order_create' %}" class="nav-link {% if request.resolver_match.url_name == 'order_create' %}active{% endif %}">
+                        <i class="bi bi-plus-circle"></i> New Sales Order
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'sales:order_list' %}" class="nav-link {% if request.resolver_match.url_name == 'order_list' %}active{% endif %}">
+                        <i class="bi bi-receipt"></i> Orders Register
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if is_admin or is_auditor %}
+                <li class="nav-item">
+                    <a href="{% url 'sales:invoice_list' %}" class="nav-link {% if request.resolver_match.url_name == 'invoice_list' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-text"></i> GST Invoices
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'sales:payment_list' %}" class="nav-link {% if request.resolver_match.url_name == 'payment_list' %}active{% endif %}">
+                        <i class="bi bi-cash-coin"></i> Customer Payments
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if is_production_supervisor or is_admin or is_owner %}
+                <div class="nav-header">Manufacturing & BOM</div>
+                <li class="nav-item">
+                    <a href="{% url 'production:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' and request.resolver_match.app_name == 'production' %}active{% endif %}">
+                        <i class="bi bi-gear-wide-connected"></i> Production Hub
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'production:bom_list' %}" class="nav-link {% if request.resolver_match.url_name == 'bom_list' %}active{% endif %}">
+                        <i class="bi bi-journal-code"></i> Bill of Materials (BOM)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'production:run_create' %}" class="nav-link {% if request.resolver_match.url_name == 'run_create' %}active{% endif %}">
+                        <i class="bi bi-play-circle"></i> Execute Production Run
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'production:run_list' %}" class="nav-link {% if request.resolver_match.url_name == 'run_list' %}active{% endif %}">
+                        <i class="bi bi-clipboard-data"></i> Run History & Yields
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if not is_salesman %}
+                <div class="nav-header">Inventory Ledger</div>
+                <li class="nav-item">
+                    <a href="{% url 'inventory:stock_summary' %}" class="nav-link {% if request.resolver_match.url_name == 'stock_summary' %}active{% endif %}">
+                        <i class="bi bi-boxes"></i> Stock Balances
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'inventory:stock_ledger' %}" class="nav-link {% if request.resolver_match.url_name == 'stock_ledger' %}active{% endif %}">
+                        <i class="bi bi-journal-text"></i> Stock Movement Ledger
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'inventory:purchase_list' %}" class="nav-link {% if request.resolver_match.url_name == 'purchase_list' %}active{% endif %}">
+                        <i class="bi bi-cart-check"></i> Purchases & Receipts
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if is_auditor or is_owner or is_admin %}
+                <div class="nav-header">Audit & GST Reports</div>
+                <li class="nav-item">
+                    <a href="{% url 'reports:auditor_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'auditor_dashboard' %}active{% endif %}">
+                        <i class="bi bi-graph-up-arrow"></i> Audit Portal
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'reports:sales_register' %}" class="nav-link {% if request.resolver_match.url_name == 'sales_register' %}active{% endif %}">
+                        <i class="bi bi-file-spreadsheet"></i> Sales Register
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'reports:gst_outward' %}" class="nav-link {% if request.resolver_match.url_name == 'gst_outward' %}active{% endif %}">
+                        <i class="bi bi-pie-chart"></i> GSTR-1 Outward Summary
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'reports:production_costing' %}" class="nav-link {% if request.resolver_match.url_name == 'production_costing' %}active{% endif %}">
+                        <i class="bi bi-calculator"></i> Costing & Variance Report
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'reports:receivables_ageing' %}" class="nav-link {% if request.resolver_match.url_name == 'receivables_ageing' %}active{% endif %}">
+                        <i class="bi bi-hourglass-split"></i> Receivables Ageing
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if is_admin %}
+                <div class="nav-header">Master Data & Audit</div>
+                <li class="nav-item">
+                    <a href="{% url 'master_data:product_list' %}" class="nav-link {% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">
+                        <i class="bi bi-tag"></i> Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'master_data:customer_list' %}" class="nav-link {% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}">
+                        <i class="bi bi-people"></i> Customers
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'master_data:supplier_list' %}" class="nav-link {% if request.resolver_match.url_name == 'supplier_list' %}active{% endif %}">
+                        <i class="bi bi-truck"></i> Suppliers
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'master_data:uom_list' %}" class="nav-link {% if request.resolver_match.url_name == 'uom_list' %}active{% endif %}">
+                        <i class="bi bi-rulers"></i> Units & Conversions
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'core:audit_trail' %}" class="nav-link {% if request.resolver_match.url_name == 'audit_trail' %}active{% endif %}">
+                        <i class="bi bi-shield-check"></i> System Audit Trail
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+
+            <div class="p-3 border-top border-secondary border-opacity-25 mt-auto">
+                <a href="{% url 'core:logout' %}" class="btn btn-outline-light btn-sm w-100 d-flex align-items-center justify-content-center gap-2">
+                    <i class="bi bi-box-arrow-right"></i> Sign Out
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Main Content Area -->
+        <div class="{% if user.is_authenticated %}col-md-9 col-xl-10{% else %}col-12{% endif %} d-flex flex-column min-vh-100">
+            {% if user.is_authenticated %}
+            <!-- Topbar -->
+            <header class="topbar d-flex justify-content-between align-items-center sticky-top">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-dark border"><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ FACTORY_STATE }}</span>
+                    <span class="badge bg-light text-secondary border">GSTIN: {{ FACTORY_GSTIN }}</span>
+                    <span class="badge bg-info bg-opacity-10 text-primary border border-info border-opacity-25">Tolerance: {{ VARIANCE_TOLERANCE_PERCENT }}%</span>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="text-muted small d-none d-sm-inline">{{ request.user.first_name }} | {{ request.user.get_role_display }}</span>
+                    <a href="{% url 'core:logout' %}" class="btn btn-sm btn-outline-danger" title="Logout"><i class="bi bi-power"></i></a>
+                </div>
+            </header>
+            {% endif %}
+
+            <!-- Flash Messages -->
+            <main class="flex-grow-1 p-3 p-md-4">
+                {% if messages %}
+                <div class="mb-3">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+                        {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill fs-5"></i>{% elif message.tags == 'error' or message.tags == 'danger' %}<i class="bi bi-exclamation-triangle-fill fs-5"></i>{% else %}<i class="bi bi-info-circle-fill fs-5"></i>{% endif %}
+                        <div>{{ message }}</div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- Footer -->
+            <footer class="mt-auto py-3 px-4 bg-white border-top text-center text-muted small">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div><b>{{ FACTORY_NAME }}</b> &bull; NIT Trichy Internship Challenge Order-to-Audit ERP</div>
+                    <div>PostgreSQL Backed &bull; Weighted-Average Valuation &bull; Accurate GST Accounting</div>
+                </div>
+            </footer>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

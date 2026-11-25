@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Customer Payment Receipt{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-1"><i class="bi bi-cash-coin me-2 text-success"></i>Record Customer Payment Receipt</h5>
+                <p class="text-muted small mb-0">Record collections and update invoice outstanding balances with automatic allocation.</p>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label small fw-semibold">Customer</label>
+                            <select name="customer" class="form-select" required>
+                                {% for c in customers %}
+                                <option value="{{ c.id }}">{{ c.name }} ({{ c.state }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label small fw-semibold">Payment Date</label>
+                            <input type="date" name="payment_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label small fw-semibold">Amount Received (₹)</label>
+                            <input type="number" step="0.01" name="amount" class="form-control form-control-lg fw-bold text-success" placeholder="e.g. 4000.00" value="4000.00" required>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label small fw-semibold">Payment Mode</label>
+                            <select name="payment_mode" class="form-select form-select-lg">
+                                {% for code, label in modes %}
+                                <option value="{{ code }}" {% if code == 'BANK_TRANSFER' %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label small fw-semibold">Transaction / UTR / Cheque Ref</label>
+                            <input type="text" name="reference_number" class="form-control" value="NEFT-SBI-443322" placeholder="e.g. UTR / Ref Number">
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label small fw-semibold">Target Invoice (Optional)</label>
+                            <select name="invoice_id" class="form-select">
+                                <option value="">-- Auto-allocate chronologically (FIFO) --</option>
+                                {% for inv in invoices %}
+                                <option value="{{ inv.id }}">
+                                    {{ inv.invoice_number }} - {{ inv.customer.name }} (Due: ₹{{ inv.outstanding_amount|floatformat:2 }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold">Payment Notes</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Part payment received via RTGS..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'sales:payment_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i> Post Payment Receipt
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}BOM Details - {{ bom.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">{{ bom.name }}</h3>
+        <p class="text-muted small mb-0">Version {{ bom.version }} &bull; Product: {{ bom.product.name }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'production:bom_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to Recipes</a>
+        <a href="{% url 'production:run_create' %}?bom_id={{ bom.id }}" class="btn btn-primary btn-sm"><i class="bi bi-play-circle me-1"></i> Launch Run</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-white fw-bold">Recipe Specifications</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <span class="text-muted small">Target Product:</span>
+                <div class="fw-bold fs-6">{{ bom.product.name }}</div>
+            </div>
+            <div class="col-md-3">
+                <span class="text-muted small">Standard Yield / Batch:</span>
+                <div class="fw-bold fs-6 text-primary">{{ bom.expected_output_packets|floatformat:0 }} Packets</div>
+            </div>
+            <div class="col-md-3">
+                <span class="text-muted small">Carton Capacity:</span>
+                <div class="fw-bold fs-6">{{ bom.product.pieces_per_carton }} pkts/carton</div>
+            </div>
+            <div class="col-md-3">
+                <span class="text-muted small">Status:</span>
+                <div><span class="badge bg-success">Active</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white fw-bold">Standard Bill of Materials Components</div>
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Component Item</th>
+                    <th>Classification</th>
+                    <th>Standard Quantity / Batch</th>
+                    <th>Unit</th>
+                    <th class="text-end">Standard Rate (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comp in bom.components.all %}
+                <tr>
+                    <td class="fw-bold">{{ comp.item.name }}</td>
+                    <td>
+                        {% if comp.is_packaging %}
+                        <span class="badge bg-warning text-dark">Packaging Material</span>
+                        {% else %}
+                        <span class="badge bg-primary bg-opacity-10 text-primary">Raw Material Ingredient</span>
+                        {% endif %}
+                    </td>
+                    <td class="fw-bold">{{ comp.quantity|floatformat:4 }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ comp.unit.code }}</span></td>
+                    <td class="text-end">₹{{ comp.standard_rate|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

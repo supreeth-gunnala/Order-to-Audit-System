@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Auditor & Accounting Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">Auditor & Accounting Portal</h3>
+        <p class="text-muted small mb-0">Read-only accounting summaries, statutory GST management reports, and exportable data ledgers.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'core:audit_trail' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-shield-check me-1"></i> System Audit Trail</a>
+    </div>
+</div>
+
+<!-- Notice -->
+<div class="alert alert-info border-info border-opacity-25 d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-info-circle-fill text-info fs-5"></i>
+    <div class="small">
+        <b>Statutory Notice:</b> All GST reports in this portal are internal management & audit summaries generated from recorded sales and invoice transactions. They are prepared for audit reconciliation and are not government-filed tax returns.
+    </div>
+</div>
+
+<!-- Quick Links / Reports Grid -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{% url 'reports:sales_register' %}" class="card text-decoration-none text-dark h-100 hover-shadow">
+            <div class="card-body p-3 text-center">
+                <i class="bi bi-file-spreadsheet text-primary fs-2"></i>
+                <h6 class="fw-bold mt-2 mb-1">Sales Register</h6>
+                <div class="text-muted small">Invoices, GST & balances</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{% url 'reports:gst_outward' %}" class="card text-decoration-none text-dark h-100 hover-shadow">
+            <div class="card-body p-3 text-center">
+                <i class="bi bi-pie-chart text-success fs-2"></i>
+                <h6 class="fw-bold mt-2 mb-1">GSTR-1 Summary</h6>
+                <div class="text-muted small">B2B, B2C, HSN breakdown</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{% url 'reports:gstr3b' %}" class="card text-decoration-none text-dark h-100 hover-shadow">
+            <div class="card-body p-3 text-center">
+                <i class="bi bi-receipt-cutoff text-warning fs-2"></i>
+                <h6 class="fw-bold mt-2 mb-1">GSTR-3B Summary</h6>
+                <div class="text-muted small">3.1 Outward supplies</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{% url 'reports:production_costing' %}" class="card text-decoration-none text-dark h-100 hover-shadow">
+            <div class="card-body p-3 text-center">
+                <i class="bi bi-calculator text-danger fs-2"></i>
+                <h6 class="fw-bold mt-2 mb-1">Production Costing</h6>
+                <div class="text-muted small">Yields, variances, cost/pkt</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{% url 'reports:receivables_ageing' %}" class="card text-decoration-none text-dark h-100 hover-shadow">
+            <div class="card-body p-3 text-center">
+                <i class="bi bi-hourglass-split text-info fs-2"></i>
+                <h6 class="fw-bold mt-2 mb-1">Receivables Ageing</h6>
+                <div class="text-muted small">0-30, 60, 90+ days aging</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{% url 'inventory:stock_ledger' %}" class="card text-decoration-none text-dark h-100 hover-shadow">
+            <div class="card-body p-3 text-center">
+                <i class="bi bi-journal-text text-secondary fs-2"></i>
+                <h6 class="fw-bold mt-2 mb-1">Stock Ledger</h6>
+                <div class="text-muted small">Traceable movement log</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- High Level Auditor Summary Table -->
+<div class="row g-4">
+    <div class="col-12 col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold"><i class="bi bi-bank me-2 text-primary"></i>Outward Taxable Supplies Summary</div>
+            <div class="card-body">
+                <table class="table table-bordered mb-0">
+                    <tbody>
+                        <tr>
+                            <td>Total Outward Taxable Value</td>
+                            <td class="text-end fw-bold">₹{{ gst.totals.taxable|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Central GST (CGST)</td>
+                            <td class="text-end fw-bold">₹{{ gst.totals.cgst|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Total State GST (SGST)</td>
+                            <td class="text-end fw-bold">₹{{ gst.totals.sgst|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Integrated GST (IGST)</td>
+                            <td class="text-end fw-bold">₹{{ gst.totals.igst|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="table-primary fw-bold">
+                            <td>Total Invoiced Turnover (Gross)</td>
+                            <td class="text-end fs-6">₹{{ gst.totals.grand_total|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold"><i class="bi bi-boxes me-2 text-success"></i>Inventory Valuation Reconciliation (WAC)</div>
+            <div class="card-body">
+                <table class="table table-bordered mb-0">
+                    <tbody>
+                        <tr>
+                            <td>Raw Material Inventory Assets</td>
+                            <td class="text-end fw-bold">₹{{ rm_val|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Packaging Material Inventory Assets</td>
+                            <td class="text-end fw-bold">₹{{ pkg_val|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Finished Goods Stock Assets</td>
+                            <td class="text-end fw-bold">₹{{ fg_val|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="table-success fw-bold">
+                            <td>Total Book Stock Asset Valuation</td>
+                            <td class="text-end fs-6">₹{{ rm_val|add:pkg_val|add:fg_val|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="table-warning fw-bold">
+                            <td>Total Customer Dues (Accounts Receivable)</td>
+                            <td class="text-end fs-6 text-danger">₹{{ total_due|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

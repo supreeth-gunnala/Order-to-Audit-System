@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Balances & Valuation{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">Inventory Balances & Valuation</h3>
+        <p class="text-muted small mb-0">Separate balances for Raw Materials, Packaging, and Finished Goods valued under Weighted Average Cost (WAC).</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'inventory:purchase_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i> Record Purchase</a>
+        <a href="{% url 'inventory:stock_ledger' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text me-1"></i> Stock Ledger</a>
+    </div>
+</div>
+
+<!-- Stock Valuation Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="kpi-card border-start border-4 border-primary">
+            <span class="kpi-title">Raw Materials Valuation</span>
+            <div class="kpi-value text-primary">₹{{ rm_total_val|floatformat:2 }}</div>
+            <div class="small text-muted mt-1">{{ raw_materials.count }} Ingredients Managed</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="kpi-card border-start border-4 border-warning">
+            <span class="kpi-title">Packaging Valuation</span>
+            <div class="kpi-value text-warning">₹{{ pkg_total_val|floatformat:2 }}</div>
+            <div class="small text-muted mt-1">{{ packaging.count }} Packaging Items</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="kpi-card border-start border-4 border-success">
+            <span class="kpi-title">Finished Goods Valuation</span>
+            <div class="kpi-value text-success">₹{{ fg_total_val|floatformat:2 }}</div>
+            <div class="small text-muted mt-1">{{ finished_goods.count }} Finished SKUs</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs for categories -->
+<ul class="nav nav-pills mb-3" id="stockTabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-rm">Raw Materials</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-pkg">Packaging Materials</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-fg">Finished Goods</button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Raw Materials Tab -->
+    <div class="tab-pane fade show active" id="tab-rm">
+        <div class="card">
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>SKU</th>
+                            <th>Item Name</th>
+                            <th>Current Stock</th>
+                            <th>UOM</th>
+                            <th class="text-end">Weighted Avg Cost (WAC)</th>
+                            <th class="text-end">Total Valuation (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in raw_materials %}
+                        <tr>
+                            <td class="fw-bold">{{ item.sku }}</td>
+                            <td>{{ item.name }}</td>
+                            <td class="fw-bold fs-6">{{ item.current_stock|floatformat:3 }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ item.uom.code }}</span></td>
+                            <td class="text-end">₹{{ item.weighted_avg_cost|floatformat:4 }}</td>
+                            <td class="text-end fw-bold text-success">₹{{ item.total_stock_value|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Packaging Tab -->
+    <div class="tab-pane fade" id="tab-pkg">
+        <div class="card">
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>SKU</th>
+                            <th>Item Name</th>
+                            <th>Current Stock</th>
+                            <th>UOM</th>
+                            <th class="text-end">Weighted Avg Cost (WAC)</th>
+                            <th class="text-end">Total Valuation (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in packaging %}
+                        <tr>
+                            <td class="fw-bold">{{ item.sku }}</td>
+                            <td>{{ item.name }}</td>
+                            <td class="fw-bold fs-6">{{ item.current_stock|floatformat:0 }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ item.uom.code }}</span></td>
+                            <td class="text-end">₹{{ item.weighted_avg_cost|floatformat:4 }}</td>
+                            <td class="text-end fw-bold text-success">₹{{ item.total_stock_value|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Finished Goods Tab -->
+    <div class="tab-pane fade" id="tab-fg">
+        <div class="card">
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>SKU</th>
+                            <th>Finished Product</th>
+                            <th>Available Finished Stock</th>
+                            <th>UOM</th>
+                            <th class="text-end">Cost Valuation</th>
+                            <th class="text-end">Total Valuation (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in finished_goods %}
+                        <tr>
+                            <td class="fw-bold">{{ item.sku }}</td>
+                            <td>{{ item.name }}</td>
+                            <td class="fw-bold fs-6 text-primary">{{ item.current_stock|floatformat:0 }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ item.uom.code }}</span></td>
+                            <td class="text-end">₹{{ item.weighted_avg_cost|floatformat:2 }}/pkt</td>
+                            <td class="text-end fw-bold text-success">₹{{ item.total_stock_value|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

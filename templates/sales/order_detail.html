@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}Order {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">Sales Order: {{ order.order_number }}</h3>
+        <p class="text-muted small mb-0">Submitted by <b>{{ order.salesman.first_name|default:order.salesman.username }}</b> on {{ order.order_date|date:"d-M-Y H:i" }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'sales:order_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Order Register</a>
+        {% if order.invoice %}
+        <a href="{% url 'sales:invoice_detail' order.invoice.id %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-text me-1"></i> View GST Invoice</a>
+        <a href="{% url 'sales:invoice_pdf_view' order.invoice.id %}" target="_blank" class="btn btn-danger btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i> Invoice PDF</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Stock Availability Alert Notice -->
+{% for item_info in stock_info %}
+{% if item_info.has_shortage %}
+<div class="alert alert-danger border-danger border-opacity-50 shadow-sm d-flex align-items-center gap-3 mb-4">
+    <i class="bi bi-exclamation-triangle-fill fs-3 text-danger"></i>
+    <div>
+        <h6 class="fw-bold mb-1">Finished Goods Stock Shortage Detected!</h6>
+        <div class="small">
+            <b>{{ item_info.item.product.name }}</b>: Order requested <b>{{ item_info.item.quantity|floatformat:0 }} pkts</b>,
+            but available finished stock is only <b class="text-dark">{{ item_info.available|floatformat:0 }} pkts</b>.
+            Shortage: <b class="text-danger">{{ item_info.shortage|floatformat:0 }} pkts</b>.
+            System will prevent invalid dispatch until new production is completed.
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<div class="row g-4 mb-4">
+    <!-- Order Summary Card -->
+    <div class="col-12 col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold"><i class="bi bi-person me-2 text-primary"></i>Customer Information</div>
+            <div class="card-body">
+                <h5 class="fw-bold mb-1">{{ order.customer.name }}</h5>
+                <span class="badge bg-light text-secondary border mb-3">{{ order.customer.get_customer_type_display }} &bull; {{ order.customer.state }}</span>
+
+                <div class="small text-muted mb-2">
+                    <div><b>GSTIN:</b> <code>{{ order.customer.gstin|default:"Unregistered / URP" }}</code></div>
+                    <div><b>Tax Jurisdiction:</b>
+                        {% if order.customer.is_interstate %}
+                        <span class="badge bg-warning text-dark">Inter-state (IGST 5%)</span>
+                        {% else %}
+                        <span class="badge bg-info bg-opacity-10 text-primary">Intra-state (CGST 2.5% + SGST 2.5%)</span>
+                        {% endif %}
+                    </div>
+                    <div class="mt-2"><b>Billing Address:</b><br/>{{ order.customer.billing_address }}</div>
+                    <div class="mt-1"><b>Phone:</b> {{ order.customer.phone }}</div>
+                </div>
+
+                <div class="border-top pt-3 mt-3">
+                    <span class="small text-muted">Order Status:</span>
+                    <div>
+                        {% if order.status == 'SUBMITTED' %}<span class="badge bg-warning text-dark fs-6">Submitted</span>
+                        {% elif order.status == 'APPROVED' %}<span class="badge bg-info text-dark fs-6">Approved</span>
+                        {% elif order.status == 'INVOICED' %}<span class="badge bg-primary fs-6">GST Invoiced</span>
+                        {% elif order.status == 'DISPATCHED' %}<span class="badge bg-success fs-6">Dispatched</span>
+                        {% elif order.status == 'REJECTED' %}<span class="badge bg-danger fs-6">Rejected</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Items & Stock Check Table -->
+    <div class="col-12 col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-basket me-2 text-primary"></i>Ordered Line Items & Real-time Finished Stock</div>
+                <span class="badge bg-light text-secondary border">Real-time DB Ledger</span>
+            </div>
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th class="text-end">Quantity</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-end">Tax Estimate</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-center">Stock Check</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for info in stock_info %}
+                        <tr>
+                            <td class="fw-bold">{{ info.item.product.name }}</td>
+                            <td class="text-end fw-bold">{{ info.item.quantity|floatformat:0 }} pkts</td>
+                            <td class="text-end">₹{{ info.item.unit_price|floatformat:2 }}</td>
+                            <td class="text-end">₹{{ info.item.subtotal|floatformat:2 }}</td>
+                            <td class="text-end">₹{{ info.item.tax_amount|floatformat:2 }}</td>
+                            <td class="text-end fw-bold text-primary">₹{{ info.item.total_amount|floatformat:2 }}</td>
+                            <td class="text-center">
+                                {% if info.has_shortage %}
+                                <span class="badge bg-danger" title="Available: {{ info.available }} pkts">Shortage ({{ info.available|floatformat:0 }} avail)</span>
+                                {% else %}
+                                <span class="badge bg-success" title="Available: {{ info.available }} pkts">In Stock ({{ info.available|floatformat:0 }} avail)</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td colspan="5" class="text-end">Order Grand Total:</td>
+                            <td class="text-end text-primary fs-5">₹{{ order.total_amount|floatformat:2 }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Admin Action Footer -->
+            {% if is_admin or is_owner %}
+            <div class="card-footer bg-white border-top p-3">
+                <h6 class="fw-bold mb-2 small text-uppercase text-muted">Admin Verification & Workflow Actions:</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    {% if order.status == 'SUBMITTED' %}
+                    <form method="post" action="{% url 'sales:order_review_action' order.id %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="approve">
+                        <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg me-1"></i> Approve Order</button>
+                    </form>
+                    <form method="post" action="{% url 'sales:order_review_action' order.id %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reject">
+                        <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-lg me-1"></i> Reject Order</button>
+                    </form>
+                    {% endif %}
+
+                    {% if order.status == 'APPROVED' and not order.invoice %}
+                    <a href="{% url 'sales:order_generate_invoice' order.id %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-file-earmark-plus me-1"></i> Generate GST Tax Invoice
+                    </a>
+                    {% endif %}
+
+                    {% if order.status in 'APPROVED,INVOICED' %}
+                    <a href="{% url 'sales:dispatch_create' order.id %}" class="btn btn-warning text-dark btn-sm">
+                        <i class="bi bi-truck me-1"></i> Record Dispatch
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

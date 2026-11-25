@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}GST Invoices Register{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">GST Tax Invoices Register</h3>
+        <p class="text-muted small mb-0">Sequential tax invoices compliant with Indian GST rules (CGST/SGST and IGST separation).</p>
+    </div>
+    <a href="{% url 'sales:payment_create' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-cash-coin me-1"></i> Record Customer Payment
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Invoice Number</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Tax Rule</th>
+                    <th class="text-end">Taxable (₹)</th>
+                    <th class="text-end">CGST (₹)</th>
+                    <th class="text-end">SGST (₹)</th>
+                    <th class="text-end">IGST (₹)</th>
+                    <th class="text-end">Total Amount (₹)</th>
+                    <th class="text-end">Outstanding Due (₹)</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td class="fw-bold"><a href="{% url 'sales:invoice_detail' inv.id %}" class="text-decoration-none">{{ inv.invoice_number }}</a></td>
+                    <td>{{ inv.invoice_date|date:"d-M-Y" }}</td>
+                    <td>{{ inv.customer.name }} <span class="badge bg-light text-muted">{{ inv.customer.state }}</span></td>
+                    <td>
+                        {% if inv.is_inter_state %}
+                        <span class="badge bg-warning text-dark">Inter-state (IGST)</span>
+                        {% else %}
+                        <span class="badge bg-info bg-opacity-10 text-primary">Intra-state (CGST+SGST)</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">₹{{ inv.taxable_value|floatformat:2 }}</td>
+                    <td class="text-end">₹{{ inv.cgst_amount|floatformat:2 }}</td>
+                    <td class="text-end">₹{{ inv.sgst_amount|floatformat:2 }}</td>
+                    <td class="text-end">₹{{ inv.igst_amount|floatformat:2 }}</td>
+                    <td class="text-end fw-bold">₹{{ inv.total_amount|floatformat:2 }}</td>
+                    <td class="text-end fw-bold text-danger">₹{{ inv.outstanding_amount|floatformat:2 }}</td>
+                    <td class="text-center">
+                        {% if inv.status == 'POSTED' %}<span class="badge bg-primary">Posted</span>
+                        {% elif inv.status == 'PARTIALLY_PAID' %}<span class="badge bg-warning text-dark">Partially Paid</span>
+                        {% elif inv.status == 'PAID' %}<span class="badge bg-success">Fully Paid</span>
+                        {% elif inv.status == 'CANCELLED' %}<span class="badge bg-secondary">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-nowrap">
+                        <a href="{% url 'sales:invoice_detail' inv.id %}" class="btn btn-sm btn-outline-primary py-0">View</a>
+                        <a href="{% url 'sales:invoice_pdf_view' inv.id %}" target="_blank" class="btn btn-sm btn-outline-danger py-0" title="Download PDF"><i class="bi bi-file-pdf"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="12" class="text-center py-4 text-muted">No invoices generated yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

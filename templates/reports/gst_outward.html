@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}GSTR-1 Outward Supplies Summary{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">GSTR-1 Style Outward Supplies Summary</h3>
+        <p class="text-muted small mb-0">Auditor & Management summary of B2B and B2C outward taxable supplies, categorized by HSN and tax slab.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="?export=csv" class="btn btn-outline-success btn-sm"><i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV</a>
+        <a href="?export=excel" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-excel me-1"></i> Export Excel</a>
+        <a href="?export=pdf" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i> Export PDF</a>
+    </div>
+</div>
+
+<div class="alert alert-light border small text-muted mb-4">
+    <i class="bi bi-shield-lock me-1"></i> <b>Statutory Notice:</b> Internal Management & Auditor Export Summary. Prepared for tax compliance verification, not a direct government portal filing.
+</div>
+
+<!-- High Level Totals Grid -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="card p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Taxable Value</span>
+            <div class="fs-4 fw-bold text-dark">₹{{ data.totals.taxable|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="card p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Central Tax (CGST)</span>
+            <div class="fs-4 fw-bold text-primary">₹{{ data.totals.cgst|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="card p-3">
+            <span class="text-muted small fw-semibold text-uppercase">State Tax (SGST)</span>
+            <div class="fs-4 fw-bold text-primary">₹{{ data.totals.sgst|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="card p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Integrated Tax (IGST)</span>
+            <div class="fs-4 fw-bold text-warning">₹{{ data.totals.igst|floatformat:2 }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Section 12: HSN Summary Table -->
+<div class="card">
+    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+        <div><i class="bi bi-tag me-2 text-primary"></i>Table 12: HSN Summary of Outward Supplies</div>
+        <span class="badge bg-light text-secondary border">HSN 19059040</span>
+    </div>
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>HSN Code</th>
+                    <th>Description</th>
+                    <th class="text-end">Total Quantity</th>
+                    <th class="text-end">Taxable Value (₹)</th>
+                    <th class="text-end">Integrated Tax (₹)</th>
+                    <th class="text-end">Central Tax (₹)</th>
+                    <th class="text-end">State Tax (₹)</th>
+                    <th class="text-end">Total Invoice Value (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data.hsn_summary %}
+                <tr>
+                    <td class="fw-bold"><code>{{ row.hsn_code }}</code></td>
+                    <td>{{ row.product__name }}</td>
+                    <td class="text-end fw-semibold">{{ row.total_qty|floatformat:0 }} pkts</td>
+                    <td class="text-end fw-bold">₹{{ row.taxable|floatformat:2 }}</td>
+                    <td class="text-end">₹{{ row.igst|floatformat:2 }}</td>
+                    <td class="text-end">₹{{ row.cgst|floatformat:2 }}</td>
+                    <td class="text-end">₹{{ row.sgst|floatformat:2 }}</td>
+                    <td class="text-end fw-bold text-success">₹{{ row.total|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center py-4 text-muted">No supplies recorded for the period.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
