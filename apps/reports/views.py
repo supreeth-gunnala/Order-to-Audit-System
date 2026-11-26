@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from apps.core.permissions import audit_or_admin
 from .services import ReportService
-from .exporters import export_csv_response, export_excel_response, export_pdf_table_response
+from .exporters import export_csv_response, export_excel_response, export_pdf_table_response, export_tally_sales_xml
 from apps.inventory.models import InventoryItem, ItemType
 
 
@@ -37,9 +37,14 @@ def sales_register(request):
     start = request.GET.get('start_date') or None
     end = request.GET.get('end_date') or None
     invoices = ReportService.get_sales_register(start_date=start, end_date=end)
+    customer_sales = ReportService.get_customer_wise_sales(start_date=start, end_date=end)
+    product_sales = ReportService.get_product_wise_sales(start_date=start, end_date=end)
 
     fmt = request.GET.get('export')
     if fmt:
+        if fmt == 'tally':
+            return export_tally_sales_xml(invoices)
+
         headers = ['Invoice No', 'Date', 'Customer', 'State', 'GSTIN', 'Taxable (₹)', 'CGST (₹)', 'SGST (₹)', 'IGST (₹)', 'Total (₹)', 'Balance Due (₹)', 'Status']
         rows = [
             [
@@ -58,6 +63,8 @@ def sales_register(request):
 
     return render(request, 'reports/sales_register.html', {
         'invoices': invoices,
+        'customer_sales': customer_sales,
+        'product_sales': product_sales,
         'start_date': start,
         'end_date': end
     })
@@ -107,16 +114,29 @@ def gstr3b_report(request):
 @login_required
 @audit_or_admin
 def production_costing_report(request):
-    runs = ReportService.get_production_costing_summary()
+    runs = list(ReportService.get_production_costing_summary())
+    for r in runs:
+        sp = r.product.selling_price if r.product else Decimal('0.00')
+        cost = r.cost_per_good_packet
+        margin = sp - cost
+        margin_pct = ((margin / sp) * Decimal('100.0')).quantize(Decimal('0.1')) if sp > Decimal('0.00') else Decimal('0.0')
+        r.sp = sp
+        r.margin = margin
+        r.margin_pct = margin_pct
 
     fmt = request.GET.get('export')
     if fmt:
-        headers = ['Run No', 'Date', 'Product', 'Actual Output', 'Yield Var %', 'Direct Mat (₹)', 'Labour (₹)', 'Overhead (₹)', 'Total Cost (₹)', 'Cost/Pkt (₹)']
+        headers = [
+            'Run No', 'Date', 'Product', 'Actual Output', 'Yield Var %',
+            'Direct Mat (₹)', 'Labour (₹)', 'Overhead (₹)', 'Total Cost (₹)',
+            'Cost/Pkt (₹)', 'Selling Price (₹)', 'Margin/Pkt (₹)', 'Margin %'
+        ]
         rows = [
             [
                 r.run_number, r.production_date.strftime('%Y-%m-%d'), r.product.name, f"{r.actual_good_output:.0f}",
                 f"{r.yield_variance_percent}%", f"{r.direct_material_cost:.2f}", f"{r.labour_cost:.2f}",
-                f"{r.gas_power_cost:.2f}", f"{r.total_production_cost:.2f}", f"{r.cost_per_good_packet:.2f}"
+                f"{r.gas_power_cost:.2f}", f"{r.total_production_cost:.2f}", f"{r.cost_per_good_packet:.2f}",
+                f"{r.sp:.2f}", f"{r.margin:.2f}", f"{r.margin_pct}%"
             ]
             for r in runs
         ]

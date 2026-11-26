@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Bill of Materials (BOM){% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'production:dashboard' %}">Manufacturing</a></li>
+<li class="breadcrumb-item"><a href="{% url 'production:bom_list' %}">Recipes & BOMs</a></li>
+<li class="breadcrumb-item active">New Recipe</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-journal-plus me-2 text-primary"></i>Define Bill of Materials (BOM Recipe)</h5>
+                    <p class="text-muted small mb-0">Specify standard batch formulation for ingredients (raw materials) and packaging requirements.</p>
+                </div>
+                <a href="{% url 'production:bom_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Back to BOMs
+                </a>
+            </div>
+
+            <div class="card-body p-4">
+                {% if not products %}
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <div>
+                        <strong>No Finished Products:</strong> You must register finished products before creating BOM formulations.
+                        <a href="{% url 'master_data:product_list' %}" class="alert-link ms-2">Configure Products Now &rarr;</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if not items %}
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <div>
+                        <strong>No Inventory Items:</strong> You need raw materials or packaging items to add as BOM ingredients.
+                        <a href="{% url 'inventory:item_create' %}" class="alert-link ms-2">Add Materials Now &rarr;</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" id="bomForm">
+                    {% csrf_token %}
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Finished Product <span class="text-danger">*</span></label>
+                            <select name="product" class="form-select form-select-lg" required {% if not products %}disabled{% endif %}>
+                                <option value="">-- Select Product --</option>
+                                {% for p in products %}
+                                <option value="{{ p.id }}">{{ p.name }} ({{ p.sku }}) - Pack Size: {{ p.pack_size|floatformat:0 }} {{ p.pack_unit.code }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Recipe / Formulation Title <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control form-control-lg fw-semibold" placeholder="e.g. Standard Murukku 200g Recipe" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Expected Good Batch Yield (Packets) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" name="expected_output" class="form-control form-control-lg fw-bold" value="200.00" required>
+                                <span class="input-group-text">Packets</span>
+                            </div>
+                            <small class="text-muted">Standard finished packet output expected from 1.0x batch multiplier.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Formulation Notes / Standard Instructions</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Fry temperature, mixing sequence, moisture checks..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Component Line Items Table -->
+                    <div class="border rounded-3 p-3 bg-light mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-card-checklist me-1 text-primary"></i>Recipe Components (Raw Materials & Packaging)</h6>
+                                <small class="text-muted">Standard quantity required for one standard batch.</small>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="addRowBtn">
+                                <i class="bi bi-plus-lg me-1"></i> Add Component Row
+                            </button>
+                        </div>
+
+                        <div class="table-responsive bg-white rounded border">
+                            <table class="table table-hover mb-0" id="componentsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 55%;">Material / Packaging Item</th>
+                                        <th style="width: 35%;">Standard Quantity per Batch</th>
+                                        <th style="width: 10%; text-align: center;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <select name="component_item" class="form-select" required>
+                                                <option value="">-- Choose Item --</option>
+                                                {% for itm in items %}
+                                                <option value="{{ itm.id }}">{{ itm.name }} ({{ itm.sku }}) [{{ itm.uom.code }}] - {{ itm.get_item_type_display }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" step="0.0001" name="component_qty" class="form-control fw-bold font-monospace" placeholder="e.g. 20.000" required>
+                                        </td>
+                                        <td class="text-center align-middle">
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" disabled><i class="bi bi-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a href="{% url 'production:bom_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4" {% if not products or not items %}disabled{% endif %}>
+                            <i class="bi bi-check-circle me-1"></i> Save Bill of Materials
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tableBody = document.querySelector('#componentsTable tbody');
+    const addBtn = document.getElementById('addRowBtn');
+
+    addBtn.addEventListener('click', function() {
+        const firstRow = tableBody.querySelector('tr');
+        const newRow = firstRow.cloneNode(true);
+        newRow.querySelector('select').value = '';
+        newRow.querySelector('input').value = '';
+        const removeBtn = newRow.querySelector('.remove-row-btn');
+        removeBtn.disabled = false;
+        removeBtn.addEventListener('click', function() {
+            newRow.remove();
+        });
+        tableBody.appendChild(newRow);
+    });
+
+    document.querySelectorAll('.remove-row-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (tableBody.querySelectorAll('tr').length > 1) {
+                this.closest('tr').remove();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

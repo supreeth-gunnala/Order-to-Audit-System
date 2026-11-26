@@ -1,44 +1,60 @@
 {% extends 'base.html' %}
 
-{% block title %}Bill of Materials (BOM){% endblock %}
+{% block title %}Bill of Materials (BOM) Recipes{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'production:dashboard' %}">Manufacturing</a></li>
+<li class="breadcrumb-item active">Recipes & BOMs</li>
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h3 class="fw-bold mb-1">Bill of Materials (BOM) Recipes</h3>
-        <p class="text-muted small mb-0">Standard production recipes, batch yields, raw ingredient proportions and packaging configurations.</p>
+        <p class="text-muted small mb-0">Standard production formulations, batch yields, raw ingredient proportions and packaging loss tolerances.</p>
     </div>
-    <a href="{% url 'production:run_create' %}" class="btn btn-primary btn-sm">
-        <i class="bi bi-play-fill me-1"></i> Start Production with BOM
-    </a>
+    {% if is_production_supervisor or is_admin or is_owner %}
+    <div class="d-flex gap-2">
+        <a href="{% url 'production:bom_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Define New Recipe
+        </a>
+        <a href="{% url 'production:run_create' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-play-fill me-1"></i> Start Production
+        </a>
+    </div>
+    {% endif %}
 </div>
 
 <div class="row g-4">
     {% for bom in boms %}
-    <div class="col-12 col-md-6 col-lg-6">
-        <div class="card h-100 shadow-sm border">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+    <div class="col-12 col-md-6 col-xl-6">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 border-bottom">
                 <div>
-                    <h5 class="fw-bold mb-0 text-primary">{{ bom.name }}</h5>
-                    <span class="badge bg-light text-secondary border mt-1">Version {{ bom.version }} &bull; {{ bom.product.name }}</span>
+                    <h5 class="fw-bold mb-1 text-primary">{{ bom.name }}</h5>
+                    <span class="badge bg-light text-secondary border">Version {{ bom.version }} &bull; {{ bom.product.name }}</span>
                 </div>
-                <span class="badge bg-success">Active Recipe</span>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">Active Recipe</span>
             </div>
             <div class="card-body">
-                <div class="p-2 mb-3 bg-light rounded text-center">
-                    <span class="small text-muted text-uppercase fw-bold">Expected Batch Output Yield</span>
-                    <div class="fs-4 fw-bold text-dark">{{ bom.expected_output_packets|floatformat:0 }} Packets</div>
+                <div class="p-3 mb-3 bg-light rounded text-center border">
+                    <span class="small text-muted text-uppercase fw-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Standard Batch Finished Yield</span>
+                    <div class="fs-3 fw-bold text-dark font-monospace">{{ bom.expected_output_packets|floatformat:0 }} Packets</div>
                 </div>
 
-                <h6 class="fw-bold small text-uppercase text-muted mb-2">Recipe Components per 1 Batch:</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered mb-0">
-                        <thead class="table-light">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold small text-uppercase text-muted mb-0">Components per Batch:</h6>
+                    <span class="badge bg-secondary" style="font-size: 0.68rem;">{{ bom.components.count }} items</span>
+                </div>
+                
+                <div class="table-responsive rounded border mb-3">
+                    <table class="table table-erp table-sm mb-0">
+                        <thead>
                             <tr>
                                 <th>Component Item</th>
                                 <th>Type</th>
                                 <th class="text-end">Standard Qty</th>
-                                <th class="text-end">Standard Rate</th>
+                                <th class="text-end">Std Cost</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -47,23 +63,51 @@
                                 <td class="fw-semibold">{{ comp.item.name }}</td>
                                 <td>
                                     {% if comp.is_packaging %}
-                                    <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">Packaging</span>
+                                    <span class="badge bg-warning bg-opacity-15 text-warning border border-warning border-opacity-25" style="font-size: 0.68rem;">Packaging</span>
                                     {% else %}
-                                    <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size: 0.65rem;">Ingredient</span>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.68rem;">Ingredient</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-end fw-bold">{{ comp.quantity|floatformat:2 }} {{ comp.unit.code }}</td>
-                                <td class="text-end text-muted small">₹{{ comp.standard_rate|floatformat:2 }}</td>
+                                <td class="text-end fw-bold font-monospace">{{ comp.quantity|floatformat:2 }} {{ comp.unit.code }}</td>
+                                <td class="text-end text-muted small font-monospace">₹{{ comp.standard_rate|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-2 text-muted small">No components defined.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+
+                {% if bom.notes %}
+                <div class="small text-muted p-2 bg-light rounded border">
+                    <strong>Process Notes:</strong> {{ bom.notes }}
+                </div>
+                {% endif %}
             </div>
-            <div class="card-footer bg-white border-top-0 pt-0 pb-3">
-                <a href="{% url 'production:run_create' %}?bom_id={{ bom.id }}" class="btn btn-outline-primary btn-sm w-100">
-                    <i class="bi bi-play-circle me-1"></i> Execute Run for This BOM
+            <div class="card-footer bg-light border-top d-flex gap-2 p-3">
+                <a href="{% url 'production:bom_detail' bom.id %}" class="btn btn-outline-secondary btn-sm flex-fill">
+                    <i class="bi bi-eye me-1"></i> View Formulation Details
                 </a>
+                <a href="{% url 'production:run_create' %}?bom_id={{ bom.id }}" class="btn btn-primary btn-sm flex-fill">
+                    <i class="bi bi-play-circle me-1"></i> Start Batch Run
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="erp-empty-state">
+                    <div class="erp-empty-icon"><i class="bi bi-journal-code"></i></div>
+                    <div class="erp-empty-title">No Bill of Materials (BOM) Defined Yet</div>
+                    <div class="erp-empty-desc">Create your standard manufacturing formulations specifying ingredient ratios and packaging requirements per batch.</div>
+                    <a href="{% url 'production:bom_create' %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-lg me-1"></i> Create First BOM Recipe
+                    </a>
+                </div>
             </div>
         </div>
     </div>

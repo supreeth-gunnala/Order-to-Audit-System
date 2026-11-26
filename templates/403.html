@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Access Restricted (403) | Order-to-Audit ERP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:dashboard_router' %}">Home</a></li>
+<li class="breadcrumb-item active">Access Restricted</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card border-0 shadow-sm text-center p-4 p-md-5">
+            <div class="mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning bg-opacity-10 text-warning p-4" style="width: 88px; height: 88px;">
+                    <i class="bi bi-shield-lock-fill" style="font-size: 2.75rem;"></i>
+                </div>
+            </div>
+
+            <div class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 align-self-center px-3 py-1 mb-2 fw-semibold" style="font-size: 0.8rem; letter-spacing: 0.04em;">
+                SECURITY ACCESS CONTROL &bull; HTTP 403
+            </div>
+
+            <h3 class="fw-bold text-dark mb-2">Access Restricted</h3>
+            <p class="text-muted mb-4 small">
+                You do not have the required role-based permissions to access this page or execute this business transaction.
+            </p>
+
+            <div class="bg-light rounded p-3 text-start border mb-4">
+                <div class="row g-2 small">
+                    <div class="col-sm-4 text-muted fw-semibold">Authenticated User:</div>
+                    <div class="col-sm-8 text-dark fw-bold font-monospace">{{ user.username }} ({{ user.get_role_display|default:user_role }})</div>
+
+                    <div class="col-sm-4 text-muted fw-semibold">Requested Module:</div>
+                    <div class="col-sm-8 font-monospace text-primary text-break">{{ request.path }}</div>
+
+                    <div class="col-sm-4 text-muted fw-semibold">Authorization Detail:</div>
+                    <div class="col-sm-8 text-secondary">
+                        {{ exception|default:"This module is restricted to designated personnel under segregation-of-duties compliance." }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <a href="{% url 'core:dashboard_router' %}" class="btn btn-primary px-4 py-2">
+                    <i class="bi bi-house-door me-2"></i>Return to My Workspace
+                </a>
+                <button onclick="window.history.back();" class="btn btn-outline-secondary px-4 py-2">
+                    <i class="bi bi-arrow-left me-2"></i>Go Back
+                </button>
+            </div>
+
+            <div class="mt-4 pt-3 border-top text-muted small">
+                <i class="bi bi-info-circle me-1"></i>
+                Need higher access? Please contact your <strong>Factory Administrator</strong> or <strong>Owner</strong>.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

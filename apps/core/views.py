@@ -135,3 +135,9 @@ def audit_trail(request):
         logs = logs.filter(entity__icontains=entity)
 
     return render(request, 'core/audit_trail.html', {'logs': logs[:200], 'action': action, 'entity': entity})
+
+
+def permission_denied_view(request, exception=None):
+    """Custom HTTP 403 Forbidden handler providing clear business context."""
+    return render(request, '403.html', {'exception': str(exception) if exception else None}, status=403)
+

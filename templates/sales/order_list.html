@@ -2,73 +2,126 @@
 
 {% block title %}Sales Orders Register{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Sales Orders</li>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h3 class="fw-bold mb-1">Sales Orders Register</h3>
-        <p class="text-muted small mb-0">Review submitted salesman orders, check inventory status, approve/reject and track dispatch.</p>
+        <p class="text-muted small mb-0">Track field salesman orders, inventory allocations, admin verifications, and dispatch fulfillment.</p>
     </div>
     <a href="{% url 'sales:order_create' %}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-lg me-1"></i> Book New Order
     </a>
 </div>
 
-<!-- Status Filters -->
-<div class="card mb-4">
-    <div class="card-body py-2">
-        <div class="d-flex flex-wrap gap-2 align-items-center">
-            <span class="small fw-bold text-muted me-2">Status Filter:</span>
-            <a href="{% url 'sales:order_list' %}" class="btn btn-sm {% if not selected_status %}btn-dark{% else %}btn-outline-secondary{% endif %}">All Orders</a>
-            {% for code, label in statuses %}
-            <a href="{% url 'sales:order_list' %}?status={{ code }}" class="btn btn-sm {% if selected_status == code %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
-            {% endfor %}
+<!-- Status Filters Bar -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+            <div class="d-flex flex-wrap gap-1 align-items-center">
+                <span class="small fw-bold text-muted me-2">Status:</span>
+                <a href="{% url 'sales:order_list' %}" class="btn btn-sm {% if not selected_status %}btn-dark{% else %}btn-outline-secondary{% endif %}">All</a>
+                {% for code, label in statuses %}
+                <a href="{% url 'sales:order_list' %}?status={{ code }}" class="btn btn-sm {% if selected_status == code %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+                {% endfor %}
+            </div>
+            <div>
+                <input type="text" class="form-control form-control-sm" placeholder="Search customer, order#..." data-filter-table="#orderTable" style="max-width: 250px;">
+            </div>
         </div>
     </div>
 </div>
 
-<div class="card">
+<div class="card shadow-sm border-0">
     <div class="card-body p-0 table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
+        <table class="table table-erp table-hover mb-0" id="orderTable">
+            <thead>
                 <tr>
                     <th>Order Number</th>
-                    <th>Date</th>
-                    <th>Customer</th>
-                    <th>Salesman</th>
-                    <th class="text-end">Subtotal (₹)</th>
-                    <th class="text-end">Tax (₹)</th>
-                    <th class="text-end">Total Amount (₹)</th>
-                    <th class="text-center">Status</th>
+                    <th>Booking Date</th>
+                    <th>Customer Name</th>
+                    <th>Sales Rep</th>
+                    <th class="text-end">Pre-Tax Subtotal</th>
+                    <th class="text-end">GST Tax</th>
+                    <th class="text-end">Total Amount</th>
+                    <th class="text-center">Workflow Status</th>
                     <th class="text-center">Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for o in orders %}
                 <tr>
-                    <td class="fw-bold"><a href="{% url 'sales:order_detail' o.id %}" class="text-decoration-none">{{ o.order_number }}</a></td>
-                    <td>{{ o.order_date|date:"d-M-Y" }}</td>
-                    <td>{{ o.customer.name }} <span class="badge bg-light text-muted">{{ o.customer.state }}</span></td>
-                    <td class="small">{{ o.salesman.first_name|default:o.salesman.username }}</td>
-                    <td class="text-end">₹{{ o.subtotal|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ o.tax_estimate|floatformat:2 }}</td>
-                    <td class="text-end fw-bold text-primary">₹{{ o.total_amount|floatformat:2 }}</td>
+                    <td class="fw-bold">
+                        <a href="{% url 'sales:order_detail' o.id %}" class="text-decoration-none">
+                            <code>{{ o.order_number }}</code>
+                        </a>
+                    </td>
+                    <td class="text-nowrap">{{ o.order_date|date:"d-M-Y" }}</td>
+                    <td>
+                        <div class="fw-semibold text-dark">{{ o.customer.name }}</div>
+                        <span class="badge bg-light text-muted border">{{ o.customer.state }}</span>
+                    </td>
+                    <td class="small text-muted">{{ o.salesman.first_name|default:o.salesman.username }}</td>
+                    <td class="text-end font-monospace text-muted">₹{{ o.subtotal|floatformat:2 }}</td>
+                    <td class="text-end font-monospace text-muted">₹{{ o.tax_estimate|floatformat:2 }}</td>
+                    <td class="text-end fw-bold text-primary font-monospace fs-6">₹{{ o.total_amount|floatformat:2 }}</td>
                     <td class="text-center">
-                        {% if o.status == 'SUBMITTED' %}<span class="badge bg-warning text-dark">Submitted</span>
-                        {% elif o.status == 'APPROVED' %}<span class="badge bg-info text-dark">Approved</span>
-                        {% elif o.status == 'INVOICED' %}<span class="badge bg-primary">Invoiced</span>
-                        {% elif o.status == 'DISPATCHED' %}<span class="badge bg-success">Dispatched</span>
-                        {% elif o.status == 'REJECTED' %}<span class="badge bg-danger">Rejected</span>
+                        {% if o.status == 'SUBMITTED' %}<span class="badge-status badge-status-submitted">Submitted</span>
+                        {% elif o.status == 'APPROVED' %}<span class="badge-status badge-status-approved">Approved</span>
+                        {% elif o.status == 'INVOICED' %}<span class="badge-status badge-status-invoiced">Invoiced</span>
+                        {% elif o.status == 'DISPATCHED' %}<span class="badge-status badge-status-dispatched">Dispatched</span>
+                        {% elif o.status == 'REJECTED' %}<span class="badge-status badge-status-rejected">Rejected</span>
                         {% endif %}
                     </td>
                     <td class="text-center">
-                        <a href="{% url 'sales:order_detail' o.id %}" class="btn btn-sm btn-outline-primary">View / Review</a>
+                        <a href="{% url 'sales:order_detail' o.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i> Review
+                        </a>
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="9" class="text-center py-4 text-muted">No sales orders found matching status filter.</td></tr>
+                <tr>
+                    <td colspan="9">
+                        <div class="erp-empty-state">
+                            <div class="erp-empty-icon"><i class="bi bi-cart-x"></i></div>
+                            <div class="erp-empty-title">No Sales Orders Found</div>
+                            <div class="erp-empty-desc">Field salesmen can book orders directly from the mobile portal or admin can book on customer behalf.</div>
+                            <a href="{% url 'sales:order_create' %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-lg me-1"></i> Book New Sales Order
+                            </a>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+{% if page_obj and page_obj.paginator.num_pages > 1 %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}">Previous</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}{% if selected_status %}&status={{ selected_status }}{% endif %}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}">Next</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% endblock %}

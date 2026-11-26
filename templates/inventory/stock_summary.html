@@ -2,81 +2,152 @@
 
 {% block title %}Inventory Balances & Valuation{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Inventory & Valuation</li>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h3 class="fw-bold mb-1">Inventory Balances & Valuation</h3>
-        <p class="text-muted small mb-0">Separate balances for Raw Materials, Packaging, and Finished Goods valued under Weighted Average Cost (WAC).</p>
+        <p class="text-muted small mb-0">Perpetual inventory tracked under Weighted Average Cost (WAC) with low-stock alerts.</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="{% url 'inventory:purchase_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i> Record Purchase</a>
-        <a href="{% url 'inventory:stock_ledger' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text me-1"></i> Stock Ledger</a>
+        {% if is_admin or is_owner %}
+        <a href="{% url 'inventory:item_create' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-plus-circle me-1"></i> Add Material / Pkg
+        </a>
+        <a href="{% url 'inventory:purchase_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-cart-plus me-1"></i> Record Purchase
+        </a>
+        {% endif %}
+        <a href="{% url 'inventory:stock_ledger' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-journal-text me-1"></i> Stock Ledger
+        </a>
+        <a href="?export=csv" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+        </a>
+        <a href="?export=excel" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+        </a>
     </div>
 </div>
 
 <!-- Stock Valuation Summary Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-12 col-md-4">
-        <div class="kpi-card border-start border-4 border-primary">
-            <span class="kpi-title">Raw Materials Valuation</span>
-            <div class="kpi-value text-primary">₹{{ rm_total_val|floatformat:2 }}</div>
-            <div class="small text-muted mt-1">{{ raw_materials.count }} Ingredients Managed</div>
+    <div class="col-12 col-md-3">
+        <div class="kpi-card kpi-info">
+            <div class="kpi-title">
+                <span>Raw Materials</span>
+                <span class="badge bg-info bg-opacity-10 text-info">{{ raw_materials.count }} SKUs</span>
+            </div>
+            <div class="kpi-value text-info">₹{{ rm_total_val|floatformat:2 }}</div>
+            <div class="kpi-subtitle">Ingredients & Bulk Spices</div>
         </div>
     </div>
-    <div class="col-12 col-md-4">
-        <div class="kpi-card border-start border-4 border-warning">
-            <span class="kpi-title">Packaging Valuation</span>
+    <div class="col-12 col-md-3">
+        <div class="kpi-card kpi-warning">
+            <div class="kpi-title">
+                <span>Packaging Stock</span>
+                <span class="badge bg-warning bg-opacity-10 text-warning">{{ packaging.count }} SKUs</span>
+            </div>
             <div class="kpi-value text-warning">₹{{ pkg_total_val|floatformat:2 }}</div>
-            <div class="small text-muted mt-1">{{ packaging.count }} Packaging Items</div>
+            <div class="kpi-subtitle">Pouches & Shipping Cartons</div>
         </div>
     </div>
-    <div class="col-12 col-md-4">
-        <div class="kpi-card border-start border-4 border-success">
-            <span class="kpi-title">Finished Goods Valuation</span>
+    <div class="col-12 col-md-3">
+        <div class="kpi-card kpi-success">
+            <div class="kpi-title">
+                <span>Finished Goods</span>
+                <span class="badge bg-success bg-opacity-10 text-success">{{ finished_goods.count }} SKUs</span>
+            </div>
             <div class="kpi-value text-success">₹{{ fg_total_val|floatformat:2 }}</div>
-            <div class="small text-muted mt-1">{{ finished_goods.count }} Finished SKUs</div>
+            <div class="kpi-subtitle">Packaged Snacks Ready for Dispatch</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-title">
+                <span>Total Inventory Value</span>
+                <span class="badge bg-primary bg-opacity-10 text-primary">WAC Asset</span>
+            </div>
+            <div class="kpi-value text-primary">₹{{ grand_total_val|floatformat:2 }}</div>
+            <div class="kpi-subtitle">Balance Sheet Stock Asset</div>
         </div>
     </div>
 </div>
 
-<!-- Tabs for categories -->
-<ul class="nav nav-pills mb-3" id="stockTabs" role="tablist">
+<!-- Category Tabs -->
+<ul class="nav nav-pills mb-3 border-bottom pb-2" id="stockTabs" role="tablist">
     <li class="nav-item">
-        <button class="nav-link active fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-rm">Raw Materials</button>
+        <button class="nav-link active fw-bold" data-bs-toggle="pill" data-bs-target="#tab-rm">
+            <i class="bi bi-basket me-1"></i> Raw Materials ({{ raw_materials.count }})
+        </button>
     </li>
     <li class="nav-item">
-        <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-pkg">Packaging Materials</button>
+        <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-pkg">
+            <i class="bi bi-box me-1"></i> Packaging Materials ({{ packaging.count }})
+        </button>
     </li>
     <li class="nav-item">
-        <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-fg">Finished Goods</button>
+        <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-fg">
+            <i class="bi bi-box-seam me-1"></i> Finished Goods ({{ finished_goods.count }})
+        </button>
     </li>
 </ul>
 
 <div class="tab-content">
     <!-- Raw Materials Tab -->
     <div class="tab-pane fade show active" id="tab-rm">
-        <div class="card">
+        <div class="card shadow-sm border-0">
             <div class="card-body p-0 table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
+                <table class="table table-erp table-hover mb-0">
+                    <thead>
                         <tr>
                             <th>SKU</th>
-                            <th>Item Name</th>
-                            <th>Current Stock</th>
+                            <th>Ingredient Name</th>
+                            <th>Current Balance</th>
                             <th>UOM</th>
+                            <th>Reorder Level</th>
                             <th class="text-end">Weighted Avg Cost (WAC)</th>
-                            <th class="text-end">Total Valuation (₹)</th>
+                            <th class="text-end">Total Valuation</th>
+                            <th class="text-center">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in raw_materials %}
                         <tr>
-                            <td class="fw-bold">{{ item.sku }}</td>
+                            <td class="fw-bold text-dark"><code>{{ item.sku }}</code></td>
                             <td>{{ item.name }}</td>
                             <td class="fw-bold fs-6">{{ item.current_stock|floatformat:3 }}</td>
                             <td><span class="badge bg-light text-dark border">{{ item.uom.code }}</span></td>
-                            <td class="text-end">₹{{ item.weighted_avg_cost|floatformat:4 }}</td>
-                            <td class="text-end fw-bold text-success">₹{{ item.total_stock_value|floatformat:2 }}</td>
+                            <td class="text-muted">{{ item.reorder_level|floatformat:3 }}</td>
+                            <td class="text-end font-monospace">₹{{ item.weighted_avg_cost|floatformat:4 }}</td>
+                            <td class="text-end fw-bold text-success font-monospace">₹{{ item.total_stock_value|floatformat:2 }}</td>
+                            <td class="text-center">
+                                {% if item.is_low_stock %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">
+                                    <i class="bi bi-exclamation-triangle me-1"></i> Low Stock
+                                </span>
+                                {% else %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                    <i class="bi bi-check-circle me-1"></i> Optimal
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8">
+                                <div class="erp-empty-state">
+                                    <div class="erp-empty-icon"><i class="bi bi-basket"></i></div>
+                                    <div class="erp-empty-title">No Raw Materials Registered</div>
+                                    <div class="erp-empty-desc">Add raw ingredients (flours, oil, spices) to start tracking batch formulations and recipe issues.</div>
+                                    <a href="{% url 'inventory:item_create' %}" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-plus-lg me-1"></i> Add Raw Material
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -87,28 +158,55 @@
 
     <!-- Packaging Tab -->
     <div class="tab-pane fade" id="tab-pkg">
-        <div class="card">
+        <div class="card shadow-sm border-0">
             <div class="card-body p-0 table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
+                <table class="table table-erp table-hover mb-0">
+                    <thead>
                         <tr>
                             <th>SKU</th>
-                            <th>Item Name</th>
-                            <th>Current Stock</th>
+                            <th>Packaging Name</th>
+                            <th>Current Balance</th>
                             <th>UOM</th>
+                            <th>Reorder Level</th>
                             <th class="text-end">Weighted Avg Cost (WAC)</th>
-                            <th class="text-end">Total Valuation (₹)</th>
+                            <th class="text-end">Total Valuation</th>
+                            <th class="text-center">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in packaging %}
                         <tr>
-                            <td class="fw-bold">{{ item.sku }}</td>
+                            <td class="fw-bold text-dark"><code>{{ item.sku }}</code></td>
                             <td>{{ item.name }}</td>
-                            <td class="fw-bold fs-6">{{ item.current_stock|floatformat:0 }}</td>
+                            <td class="fw-bold fs-6">{{ item.current_stock|floatformat:3 }}</td>
                             <td><span class="badge bg-light text-dark border">{{ item.uom.code }}</span></td>
-                            <td class="text-end">₹{{ item.weighted_avg_cost|floatformat:4 }}</td>
-                            <td class="text-end fw-bold text-success">₹{{ item.total_stock_value|floatformat:2 }}</td>
+                            <td class="text-muted">{{ item.reorder_level|floatformat:3 }}</td>
+                            <td class="text-end font-monospace">₹{{ item.weighted_avg_cost|floatformat:4 }}</td>
+                            <td class="text-end fw-bold text-success font-monospace">₹{{ item.total_stock_value|floatformat:2 }}</td>
+                            <td class="text-center">
+                                {% if item.is_low_stock %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">
+                                    <i class="bi bi-exclamation-triangle me-1"></i> Low Stock
+                                </span>
+                                {% else %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                    <i class="bi bi-check-circle me-1"></i> Optimal
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8">
+                                <div class="erp-empty-state">
+                                    <div class="erp-empty-icon"><i class="bi bi-box"></i></div>
+                                    <div class="erp-empty-title">No Packaging Materials Registered</div>
+                                    <div class="erp-empty-desc">Register printed pouches, corrugated cartons, and packing tape to monitor packaging loss and capacity.</div>
+                                    <a href="{% url 'inventory:item_create' %}" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-plus-lg me-1"></i> Add Packaging Material
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -119,28 +217,60 @@
 
     <!-- Finished Goods Tab -->
     <div class="tab-pane fade" id="tab-fg">
-        <div class="card">
+        <div class="card shadow-sm border-0">
             <div class="card-body p-0 table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
+                <table class="table table-erp table-hover mb-0">
+                    <thead>
                         <tr>
                             <th>SKU</th>
-                            <th>Finished Product</th>
-                            <th>Available Finished Stock</th>
+                            <th>Finished Product Name</th>
+                            <th>Available Stock</th>
                             <th>UOM</th>
-                            <th class="text-end">Cost Valuation</th>
-                            <th class="text-end">Total Valuation (₹)</th>
+                            <th>Reorder Safety Level</th>
+                            <th class="text-end">Production Cost (WAC)</th>
+                            <th class="text-end">Total Valuation</th>
+                            <th class="text-center">Stock Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in finished_goods %}
                         <tr>
-                            <td class="fw-bold">{{ item.sku }}</td>
-                            <td>{{ item.name }}</td>
-                            <td class="fw-bold fs-6 text-primary">{{ item.current_stock|floatformat:0 }}</td>
+                            <td class="fw-bold text-dark"><code>{{ item.sku }}</code></td>
+                            <td>
+                                <div class="fw-bold">{{ item.name }}</div>
+                                {% if item.linked_product %}
+                                <small class="text-muted">Linked to catalog SKU: {{ item.linked_product.sku }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold fs-6 text-primary">{{ item.current_stock|floatformat:0 }} pkts</td>
                             <td><span class="badge bg-light text-dark border">{{ item.uom.code }}</span></td>
-                            <td class="text-end">₹{{ item.weighted_avg_cost|floatformat:2 }}/pkt</td>
-                            <td class="text-end fw-bold text-success">₹{{ item.total_stock_value|floatformat:2 }}</td>
+                            <td class="text-muted">{{ item.reorder_level|floatformat:0 }} pkts</td>
+                            <td class="text-end font-monospace">₹{{ item.weighted_avg_cost|floatformat:2 }}/pkt</td>
+                            <td class="text-end fw-bold text-success font-monospace">₹{{ item.total_stock_value|floatformat:2 }}</td>
+                            <td class="text-center">
+                                {% if item.is_low_stock %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">
+                                    <i class="bi bi-exclamation-triangle me-1"></i> Stock Shortage
+                                </span>
+                                {% else %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                    <i class="bi bi-check-circle me-1"></i> Available
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8">
+                                <div class="erp-empty-state">
+                                    <div class="erp-empty-icon"><i class="bi bi-box-seam"></i></div>
+                                    <div class="erp-empty-title">No Finished Goods in Stock</div>
+                                    <div class="erp-empty-desc">Create products in Master Data and execute production runs to populate finished goods stock.</div>
+                                    <a href="{% url 'master_data:product_list' %}" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-plus-lg me-1"></i> Configure Products
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>

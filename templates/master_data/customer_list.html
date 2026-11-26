@@ -1,55 +1,103 @@
 {% extends 'base.html' %}
 
-{% block title %}Customer Master{% endblock %}
+{% block title %}Customer Directory Master{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Customer Directory</li>
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-        <h3 class="fw-bold mb-1">Customer Master</h3>
-        <p class="text-muted small mb-0">Manage wholesale distributors and retail buyers, tax jurisdictions, and sales routes.</p>
+        <h3 class="fw-bold mb-1">Customer Directory Master</h3>
+        <p class="text-muted small mb-0">Manage wholesale distributors, retail stores, tax jurisdictions (Intra-state vs Inter-state), and assigned field salesmen.</p>
     </div>
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newCustomerModal">
-        <i class="bi bi-person-plus me-1"></i> Add Customer
+        <i class="bi bi-person-plus me-1"></i> Register New Customer
     </button>
 </div>
 
-<div class="card">
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div class="fw-bold text-dark">
+            <i class="bi bi-people me-2 text-primary"></i>Customer Accounts
+        </div>
+        <div>
+            <input type="text" class="form-control form-control-sm" placeholder="Search customer, GSTIN..." data-filter-table="#customerTable" style="max-width: 250px;">
+        </div>
+    </div>
     <div class="card-body p-0 table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
+        <table class="table table-erp table-hover mb-0" id="customerTable">
+            <thead>
                 <tr>
                     <th>Customer Name</th>
-                    <th>Type</th>
-                    <th>State</th>
-                    <th>GSTIN</th>
-                    <th>Tax Rule</th>
-                    <th>Assigned Salesman</th>
-                    <th>Phone / Contact</th>
+                    <th>Account Type</th>
+                    <th>State Jurisdiction</th>
+                    <th>GSTIN Identification</th>
+                    <th>GST Tax Rule</th>
+                    <th>Assigned Sales Route</th>
+                    <th>Contact Phone</th>
                     <th class="text-center">Status</th>
                 </tr>
             </thead>
             <tbody>
                 {% for c in customers %}
                 <tr>
-                    <td class="fw-bold">{{ c.name }}</td>
-                    <td><span class="badge bg-light text-secondary border">{{ c.get_customer_type_display }}</span></td>
+                    <td class="fw-bold text-dark">
+                        <div>{{ c.name }}</div>
+                        <small class="text-muted">{{ c.billing_address|truncatechars:40 }}</small>
+                    </td>
+                    <td>
+                        {% if c.customer_type == 'DISTRIBUTOR' %}
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">Distributor</span>
+                        {% else %}
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">Retailer</span>
+                        {% endif %}
+                    </td>
                     <td>{{ c.state }}</td>
                     <td><code>{{ c.gstin|default:"URP / Unregistered" }}</code></td>
                     <td>
                         {% if c.is_interstate %}
-                        <span class="badge bg-warning text-dark"><i class="bi bi-arrow-left-right me-1"></i> Inter-state (IGST)</span>
+                        <span class="badge bg-warning bg-opacity-15 text-warning border border-warning border-opacity-25">
+                            <i class="bi bi-arrow-left-right me-1"></i> Inter-State (IGST)
+                        </span>
                         {% else %}
-                        <span class="badge bg-info bg-opacity-10 text-primary"><i class="bi bi-building me-1"></i> Intra-state (CGST+SGST)</span>
+                        <span class="badge bg-info bg-opacity-15 text-info border border-info border-opacity-25">
+                            <i class="bi bi-building me-1"></i> Intra-State (CGST+SGST)
+                        </span>
                         {% endif %}
                     </td>
-                    <td>{{ c.assigned_salesman.first_name|default:c.assigned_salesman.username|default:"Unassigned" }}</td>
-                    <td>{{ c.phone }}</td>
+                    <td>
+                        {% if c.assigned_salesman %}
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-person me-1"></i> {{ c.assigned_salesman.first_name|default:c.assigned_salesman.username }}
+                        </span>
+                        {% else %}
+                        <span class="text-muted small">Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td class="font-monospace small">{{ c.phone }}</td>
                     <td class="text-center">
-                        {% if c.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+                        {% if c.is_active %}
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="text-center py-4 text-muted">No customers registered yet.</td></tr>
+                <tr>
+                    <td colspan="8">
+                        <div class="erp-empty-state">
+                            <div class="erp-empty-icon"><i class="bi bi-people"></i></div>
+                            <div class="erp-empty-title">No Customers Registered Yet</div>
+                            <div class="erp-empty-desc">Add retail shops or wholesale distributors to enable salesmen order booking and tax-compliant GST invoicing.</div>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newCustomerModal">
+                                <i class="bi bi-person-plus me-1"></i> Register First Customer
+                            </button>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -58,65 +106,74 @@
 
 <!-- Modal Add Customer -->
 <div class="modal fade" id="newCustomerModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
             <form method="post">
                 {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Register Customer</h5>
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark"><i class="bi bi-person-plus me-2 text-primary"></i>Register New Customer Account</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Customer Trade Name</label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. Annapoorna Stores" required>
+                        <label class="form-label">Customer Trade Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control form-control-lg fw-semibold" placeholder="e.g. Sri Murugan Sweets / Annapoorna Retail Stores" required>
                     </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Customer Type</label>
-                            <select name="customer_type" class="form-select">
-                                <option value="RETAILER">Retailer</option>
-                                <option value="DISTRIBUTOR">Distributor</option>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Customer Classification <span class="text-danger">*</span></label>
+                            <select name="customer_type" class="form-select" required>
+                                {% for val, label in customer_types %}
+                                <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
                             </select>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">State</label>
-                            <input type="text" name="state" class="form-control" value="Tamil Nadu" required>
+                        <div class="col-md-6">
+                            <label class="form-label">Supply State Jurisdiction <span class="text-danger">*</span></label>
+                            <input type="text" name="state" class="form-control" value="{{ FACTORY_STATE }}" required>
+                            <small class="text-muted">Determines CGST+SGST vs IGST calculation.</small>
                         </div>
                     </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">GSTIN</label>
-                            <input type="text" name="gstin" class="form-control" placeholder="15-digit GSTIN">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">GSTIN (15 characters)</label>
+                            <input type="text" name="gstin" class="form-control font-monospace text-uppercase" placeholder="e.g. 33AAAAA0000A1Z5">
+                            <small class="text-muted">Leave empty if customer is an unregistered retailer (B2C).</small>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Assigned Salesman</label>
+                        <div class="col-md-6">
+                            <label class="form-label">Assigned Sales Representative</label>
                             <select name="assigned_salesman" class="form-select">
-                                <option value="">-- None --</option>
+                                <option value="">-- None (Direct Account) --</option>
                                 {% for s in salesmen %}
-                                <option value="{{ s.id }}">{{ s.first_name|default:s.username }}</option>
+                                <option value="{{ s.id }}">{{ s.first_name|default:s.username }} ({{ s.phone_number|default:s.role }})</option>
                                 {% endfor %}
                             </select>
                         </div>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Billing Address</label>
-                        <textarea name="billing_address" class="form-control" rows="2" required></textarea>
+                        <label class="form-label">Billing / Dispatch Address <span class="text-danger">*</span></label>
+                        <textarea name="billing_address" class="form-control" rows="2" placeholder="Street, Market area, City, Pin code" required></textarea>
                     </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Phone Number</label>
-                            <input type="text" name="phone" class="form-control" required>
+
+                    <div class="row g-3 mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Contact Phone Number <span class="text-danger">*</span></label>
+                            <input type="text" name="phone" class="form-control" placeholder="10-digit mobile number" required>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Email Address</label>
-                            <input type="email" name="email" class="form-control">
+                        <div class="col-md-6">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" name="email" class="form-control" placeholder="billing@customer.com">
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Save Customer</button>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        <i class="bi bi-check-circle me-1"></i> Register Customer
+                    </button>
                 </div>
             </form>
         </div>

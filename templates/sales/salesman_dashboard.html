@@ -1,85 +1,116 @@
 {% extends 'base.html' %}
 
-{% block title %}Salesman Portal{% endblock %}
+{% block title %}Sales Representative Field Portal{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Salesman Portal</li>
+{% endblock %}
 
 {% block content %}
 <div class="mb-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold mb-0">Salesman Mobile Portal</h4>
-            <div class="text-muted small">Welcome, {{ user.first_name|default:user.username }} &bull; Assigned Routes</div>
+            <h3 class="fw-bold mb-1">Sales Representative Field Portal</h3>
+            <div class="text-muted small">Welcome, <b>{{ user.first_name|default:user.username }}</b> &bull; Assigned Routes & Mobile Booking</div>
         </div>
         <a href="{% url 'sales:order_create' %}" class="btn btn-primary btn-lg shadow-sm">
-            <i class="bi bi-cart-plus-fill me-1"></i> New Sales Order
+            <i class="bi bi-cart-plus-fill me-1"></i> Book New Sales Order
         </a>
     </div>
 </div>
 
-<!-- Assigned Customers Section -->
-<div class="card mb-4">
-    <div class="card-header bg-white py-3">
-        <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-people-fill me-2"></i>My Assigned Customers</h6>
-    </div>
-    <div class="card-body p-0">
-        <div class="list-group list-group-flush">
-            {% for c in customers %}
-            <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                <div>
-                    <h6 class="fw-bold mb-1">{{ c.name }}</h6>
-                    <div class="small text-muted">
-                        <span class="badge bg-light text-secondary border me-1">{{ c.get_customer_type_display }}</span>
-                        <span>{{ c.state }}</span> &bull; <span>{{ c.phone }}</span>
-                    </div>
-                </div>
-                <a href="{% url 'sales:order_create' %}?customer_id={{ c.id }}" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-plus-lg me-1"></i> Book Order
-                </a>
+<div class="row g-4">
+    <!-- Assigned Customers Section -->
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-dark"><i class="bi bi-people-fill me-2 text-primary"></i>My Assigned Customer Accounts</span>
+                <span class="badge bg-light text-secondary border">{{ customers.count }} stores</span>
             </div>
-            {% empty %}
-            <div class="p-4 text-center text-muted">No customers assigned yet.</div>
-            {% endfor %}
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for c in customers %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-3 px-3">
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">{{ c.name }}</h6>
+                            <div class="small text-muted mb-1">
+                                <span class="badge bg-light text-secondary border me-1">{{ c.get_customer_type_display }}</span>
+                                <span>{{ c.state }}</span> &bull; <span>{{ c.phone }}</span>
+                            </div>
+                            <div class="small">
+                                <span class="fw-semibold text-primary">Customer Sales: ₹{{ c.total_sales|default:0|floatformat:2 }}</span>
+                                <span class="text-muted ms-1">({{ c.total_orders|default:0 }} orders)</span>
+                            </div>
+                        </div>
+                        <a href="{% url 'sales:order_create' %}?customer_id={{ c.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-cart-plus me-1"></i> Book Order
+                        </a>
+                    </div>
+                    {% empty %}
+                    <div class="p-4 text-center text-muted">
+                        <div class="erp-empty-icon mb-2" style="width: 48px; height: 48px; font-size: 1.25rem;"><i class="bi bi-person-x"></i></div>
+                        <div class="fw-bold">No Customers Assigned</div>
+                        <div class="small text-muted">Contact your Factory Admin to assign retail stores or distributor routes to your profile.</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- My Orders Register -->
-<div class="card">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-receipt me-2"></i>Recent Orders</h6>
-        <a href="{% url 'sales:order_list' %}" class="small text-decoration-none">View All &rarr;</a>
-    </div>
-    <div class="card-body p-0 table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>Order #</th>
-                    <th>Customer</th>
-                    <th>Date</th>
-                    <th class="text-end">Total Amount</th>
-                    <th class="text-center">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for o in orders %}
-                <tr>
-                    <td class="fw-bold"><a href="{% url 'sales:order_detail' o.id %}" class="text-decoration-none">{{ o.order_number }}</a></td>
-                    <td>{{ o.customer.name }}</td>
-                    <td class="small text-muted">{{ o.order_date|date:"d-M-Y" }}</td>
-                    <td class="text-end fw-semibold">₹{{ o.total_amount|floatformat:2 }}</td>
-                    <td class="text-center">
-                        {% if o.status == 'SUBMITTED' %}<span class="badge bg-warning text-dark">Submitted</span>
-                        {% elif o.status == 'APPROVED' %}<span class="badge bg-info text-dark">Approved</span>
-                        {% elif o.status == 'INVOICED' %}<span class="badge bg-primary">Invoiced</span>
-                        {% elif o.status == 'DISPATCHED' %}<span class="badge bg-success">Dispatched</span>
-                        {% elif o.status == 'REJECTED' %}<span class="badge bg-danger">Rejected</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" class="text-center py-4 text-muted">No orders submitted yet.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- My Recent Orders Register -->
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-dark"><i class="bi bi-receipt me-2 text-primary"></i>My Recent Field Bookings</span>
+                <a href="{% url 'sales:order_list' %}" class="small text-decoration-none">View All Orders &rarr;</a>
+            </div>
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-erp table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th class="text-end">Total Amount</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in orders %}
+                        <tr>
+                            <td class="fw-bold font-monospace">
+                                <a href="{% url 'sales:order_detail' o.id %}" class="text-decoration-none">
+                                    <code>{{ o.order_number }}</code>
+                                </a>
+                            </td>
+                            <td class="fw-semibold text-dark">{{ o.customer.name }}</td>
+                            <td class="small text-muted text-nowrap">{{ o.order_date|date:"d-M-Y" }}</td>
+                            <td class="text-end fw-bold font-monospace text-primary">₹{{ o.total_amount|floatformat:2 }}</td>
+                            <td class="text-center">
+                                {% if o.status == 'SUBMITTED' %}<span class="badge-status badge-status-submitted">Submitted</span>
+                                {% elif o.status == 'APPROVED' %}<span class="badge-status badge-status-approved">Approved</span>
+                                {% elif o.status == 'INVOICED' %}<span class="badge-status badge-status-invoiced">Invoiced</span>
+                                {% elif o.status == 'DISPATCHED' %}<span class="badge-status badge-status-dispatched">Dispatched</span>
+                                {% elif o.status == 'REJECTED' %}<span class="badge-status badge-status-rejected">Rejected</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="erp-empty-state py-4">
+                                    <div class="erp-empty-icon mb-2" style="width: 48px; height: 48px; font-size: 1.25rem;"><i class="bi bi-cart-x"></i></div>
+                                    <div class="erp-empty-title fs-6">No Orders Booked Yet</div>
+                                    <div class="erp-empty-desc small">Select a customer above or click "Book New Sales Order" to start booking orders.</div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

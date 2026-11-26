@@ -1,16 +1,31 @@
 {% extends 'base.html' %}
 
-{% block title %}Production Run {{ run.run_number }}{% endblock %}
+{% block title %}Production Run {{ run.run_number }} Costing{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'production:dashboard' %}">Manufacturing</a></li>
+<li class="breadcrumb-item"><a href="{% url 'production:run_list' %}">Run History</a></li>
+<li class="breadcrumb-item active">{{ run.run_number }}</li>
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-        <h3 class="fw-bold mb-1">Production Run: {{ run.run_number }}</h3>
-        <p class="text-muted small mb-0">{{ run.product.name }} &bull; Completed on {{ run.production_date|date:"d-M-Y" }} by {{ run.supervisor.first_name|default:run.supervisor.username }}</p>
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="fw-bold mb-0">Production Batch: {{ run.run_number }}</h3>
+            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">Stock Posted</span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">
+            {{ run.product.name }} &bull; Completed on {{ run.production_date|date:"d-M-Y" }} by {{ run.supervisor.first_name|default:run.supervisor.username }}
+        </p>
     </div>
     <div class="d-flex gap-2">
-        <a href="{% url 'production:run_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Run History</a>
-        <a href="{% url 'reports:production_costing' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-spreadsheet me-1"></i> Costing Report</a>
+        <a href="{% url 'production:run_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Run History
+        </a>
+        <a href="{% url 'reports:production_costing' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Costing Report
+        </a>
     </div>
 </div>
 
@@ -31,8 +46,8 @@
     <div>
         <h6 class="fw-bold mb-1">Yield Variance Threshold Breached (Tolerance: {{ VARIANCE_TOLERANCE_PERCENT }}%)</h6>
         <div class="small">
-            Yield Variance is <b>{{ run.yield_variance_percent }}%</b> (Expected {{ run.expected_output|floatformat:0 }} pkts, Actual Good Output {{ run.actual_good_output|floatformat:0 }} pkts).
-            Negative yield variance means production yielded fewer good packets than expected.
+            Yield Variance is <b>{{ run.yield_variance_percent }}%</b> (Planned: {{ run.expected_output|floatformat:0 }} pkts, Actual Good Output: {{ run.actual_good_output|floatformat:0 }} pkts).
+            Negative yield variance means production yielded fewer good finished packets than planned formulation.
         </div>
     </div>
 </div>
@@ -40,123 +55,154 @@
 
 <!-- Key Metrics Row -->
 <div class="row g-3 mb-4">
-    <div class="col-12 col-sm-6 col-md-3">
-        <div class="kpi-card border-start border-4 border-primary">
-            <span class="kpi-title">Actual Good Output</span>
-            <div class="kpi-value text-primary">{{ run.actual_good_output|floatformat:0 }} pkts</div>
-            <div class="small text-muted mt-1">Expected: {{ run.expected_output|floatformat:0 }} pkts</div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="kpi-title">
+                <span>Good Finished Output</span>
+                <span class="badge bg-primary bg-opacity-10 text-primary">{{ run.batch_size }}x Batch</span>
+            </div>
+            <div class="kpi-value text-primary font-monospace">{{ run.actual_good_output|floatformat:0 }} pkts</div>
+            <div class="kpi-subtitle">Planned Output: {{ run.expected_output|floatformat:0 }} pkts</div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-md-3">
-        <div class="kpi-card border-start border-4 {% if run.yield_variance_flagged %}border-danger{% else %}border-success{% endif %}">
-            <span class="kpi-title">Yield Variance %</span>
-            <div class="kpi-value {% if run.yield_variance_flagged %}text-danger{% else %}text-success{% endif %}">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card {% if run.yield_variance_flagged %}kpi-danger{% else %}kpi-success{% endif %}">
+            <div class="kpi-title">
+                <span>Yield Variance</span>
+                <span class="badge {% if run.yield_variance_flagged %}bg-danger text-white{% else %}bg-success bg-opacity-10 text-success{% endif %}">
+                    &plusmn;{{ VARIANCE_TOLERANCE_PERCENT }}% Limit
+                </span>
+            </div>
+            <div class="kpi-value {% if run.yield_variance_flagged %}text-danger{% else %}text-success{% endif %} font-monospace">
                 {{ run.yield_variance_percent }}%
             </div>
-            <div class="small text-muted mt-1">Tolerance: &plusmn;{{ VARIANCE_TOLERANCE_PERCENT }}%</div>
+            <div class="kpi-subtitle">
+                {% if run.yield_variance_flagged %}
+                <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Flagged for review</span>
+                {% else %}
+                <span class="text-success"><i class="bi bi-check-circle-fill"></i> Within tolerance</span>
+                {% endif %}
+            </div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-md-3">
-        <div class="kpi-card border-start border-4 border-info">
-            <span class="kpi-title">Total Batch Cost</span>
-            <div class="kpi-value text-dark">₹{{ run.total_production_cost|floatformat:2 }}</div>
-            <div class="small text-muted mt-1">Direct Mat + Labour + Overheads</div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card kpi-info">
+            <div class="kpi-title">
+                <span>Total Batch Cost</span>
+                <span class="badge bg-info bg-opacity-10 text-info">Absorption</span>
+            </div>
+            <div class="kpi-value text-dark font-monospace">₹{{ run.total_production_cost|floatformat:2 }}</div>
+            <div class="kpi-subtitle">Materials + Labour + Energy</div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-md-3">
-        <div class="kpi-card border-start border-4 border-success">
-            <span class="kpi-title">Cost per Good Packet</span>
-            <div class="kpi-value text-success">₹{{ run.cost_per_good_packet|floatformat:2 }}</div>
-            <div class="small text-muted mt-1">Selling Price: ₹{{ run.product.selling_price|floatformat:2 }} (Margin: ~{{ run.product.selling_price|floatformat:2 }} vs ₹{{ run.cost_per_good_packet|floatformat:2 }})</div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card kpi-success">
+            <div class="kpi-title">
+                <span>Cost / Good Packet</span>
+                <span class="badge bg-success bg-opacity-10 text-success">Per Unit</span>
+            </div>
+            <div class="kpi-value text-success font-monospace">₹{{ run.cost_per_good_packet|floatformat:2 }}</div>
+            <div class="kpi-subtitle">Catalog MRP: ₹{{ run.product.selling_price|floatformat:2 }}</div>
         </div>
     </div>
 </div>
 
-<!-- Material Consumption & Variance Analysis -->
-<div class="card mb-4">
-    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-        <div><i class="bi bi-table me-2 text-primary"></i>Planned vs Actual Material Consumption Analysis</div>
-        <span class="badge bg-light text-secondary border">WAC Valuation</span>
+<!-- Material Consumption & Variance Analysis Table -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <span class="fw-bold text-dark"><i class="bi bi-table me-2 text-primary"></i>Planned vs Actual Ingredient Consumption</span>
+        </div>
+        <span class="badge bg-light text-secondary border">Weighted Average Cost (WAC)</span>
     </div>
     <div class="card-body p-0 table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
+        <table class="table table-erp table-hover mb-0">
+            <thead>
                 <tr>
                     <th>Material Item</th>
                     <th>Classification</th>
-                    <th class="text-end">Planned Qty</th>
+                    <th class="text-end">Standard Planned</th>
                     <th class="text-end">Actual Consumed</th>
                     <th>Unit</th>
                     <th class="text-end">Consumption Variance %</th>
                     <th class="text-end">Unit Rate (WAC)</th>
-                    <th class="text-end">Total Line Cost (₹)</th>
+                    <th class="text-end">Total Line Cost</th>
                 </tr>
             </thead>
             <tbody>
                 {% for c in run.consumptions.all %}
                 <tr>
-                    <td class="fw-bold">{{ c.item.name }}</td>
+                    <td class="fw-bold text-dark">
+                        {{ c.item.name }}
+                        <small class="text-muted d-block font-monospace"><code>{{ c.item.sku }}</code></small>
+                    </td>
                     <td>
                         {% if c.is_packaging %}
-                        <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">Packaging</span>
+                        <span class="badge bg-warning bg-opacity-15 text-warning border border-warning border-opacity-25" style="font-size: 0.7rem;">Packaging</span>
                         {% else %}
-                        <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size: 0.7rem;">Raw Material</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.7rem;">Raw Material</span>
                         {% endif %}
                     </td>
-                    <td class="text-end text-muted">{{ c.planned_quantity|floatformat:3 }}</td>
-                    <td class="text-end fw-bold">{{ c.actual_quantity|floatformat:3 }}</td>
+                    <td class="text-end text-muted font-monospace">{{ c.planned_quantity|floatformat:3 }}</td>
+                    <td class="text-end fw-bold font-monospace">{{ c.actual_quantity|floatformat:3 }}</td>
                     <td><span class="badge bg-light text-dark border">{{ c.unit.code }}</span></td>
-                    <td class="text-end">
+                    <td class="text-end font-monospace">
                         {% if c.variance_flagged %}
-                        <span class="badge bg-danger"><i class="bi bi-exclamation-circle me-1"></i>{% if c.variance_percent > 0 %}+{% endif %}{{ c.variance_percent }}%</span>
+                        <span class="badge bg-danger">
+                            <i class="bi bi-exclamation-circle me-1"></i>{% if c.variance_percent > 0 %}+{% endif %}{{ c.variance_percent }}%
+                        </span>
                         {% else %}
-                        <span class="badge bg-success">{% if c.variance_percent > 0 %}+{% endif %}{{ c.variance_percent }}%</span>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                            {% if c.variance_percent > 0 %}+{% endif %}{{ c.variance_percent }}%
+                        </span>
                         {% endif %}
                     </td>
-                    <td class="text-end">₹{{ c.unit_cost|floatformat:4 }}</td>
-                    <td class="text-end fw-semibold">₹{{ c.total_cost|floatformat:2 }}</td>
+                    <td class="text-end font-monospace text-muted small">₹{{ c.unit_cost|floatformat:4 }}</td>
+                    <td class="text-end fw-bold font-monospace text-dark">₹{{ c.total_cost|floatformat:2 }}</td>
                 </tr>
                 {% endfor %}
-                <tr class="table-light fw-bold">
-                    <td colspan="7" class="text-end">Total Actual Direct Material Cost:</td>
-                    <td class="text-end text-primary fs-6">₹{{ run.direct_material_cost|floatformat:2 }}</td>
+                <tr class="table-light fw-bold border-top">
+                    <td colspan="7" class="text-end text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.05em;">Total Direct Material Cost:</td>
+                    <td class="text-end text-primary font-monospace fs-6">₹{{ run.direct_material_cost|floatformat:2 }}</td>
                 </tr>
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- Costing Sheet & Absorption -->
+<!-- Costing Breakdown & Packaging Reconciliation -->
 <div class="row g-4">
     <div class="col-12 col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-white fw-bold"><i class="bi bi-calculator me-2 text-primary"></i>Batch Cost Breakdown</div>
-            <div class="card-body">
-                <table class="table table-bordered mb-0">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3">
+                <span class="fw-bold text-dark"><i class="bi bi-calculator me-2 text-primary"></i>Batch Absorption Costing Sheet</span>
+            </div>
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-erp mb-0">
                     <tbody>
                         <tr>
-                            <td>Direct Materials Cost (Flour, Oil, Spice, Packaging)</td>
-                            <td class="text-end fw-bold">₹{{ run.direct_material_cost|floatformat:2 }}</td>
+                            <td>Direct Materials Cost (Ingredients & Packaging)</td>
+                            <td class="text-end fw-bold font-monospace">₹{{ run.direct_material_cost|floatformat:2 }}</td>
                         </tr>
                         <tr>
                             <td>Direct Manufacturing Labour Cost</td>
-                            <td class="text-end fw-bold">₹{{ run.labour_cost|floatformat:2 }}</td>
+                            <td class="text-end fw-bold font-monospace">₹{{ run.labour_cost|floatformat:2 }}</td>
                         </tr>
                         <tr>
-                            <td>Gas & Power Overheads</td>
-                            <td class="text-end fw-bold">₹{{ run.gas_power_cost|floatformat:2 }}</td>
+                            <td>Gas & Power Direct Overheads</td>
+                            <td class="text-end fw-bold font-monospace">₹{{ run.gas_power_cost|floatformat:2 }}</td>
                         </tr>
-                        <tr class="table-primary fw-bold">
-                            <td>Total Manufacturing Cost for Batch</td>
-                            <td class="text-end fs-6">₹{{ run.total_production_cost|floatformat:2 }}</td>
+                        <tr class="table-light fw-bold">
+                            <td class="text-dark">Total Production Cost</td>
+                            <td class="text-end font-monospace fs-6 text-dark">₹{{ run.total_production_cost|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="table-light">
+                            <td class="text-muted">Actual Good Finished Output Yield</td>
+                            <td class="text-end font-monospace fw-bold">{{ run.actual_good_output|floatformat:0 }} Packets</td>
                         </tr>
                         <tr class="table-success fw-bold">
-                            <td>Actual Good Output Yield</td>
-                            <td class="text-end fs-6">{{ run.actual_good_output|floatformat:0 }} Packets</td>
-                        </tr>
-                        <tr class="table-warning fw-bold fs-6">
-                            <td>Unit Cost per Good Packet (₹)</td>
-                            <td class="text-end">₹{{ run.cost_per_good_packet|floatformat:4 }} &approx; ₹{{ run.cost_per_good_packet|floatformat:2 }}</td>
+                            <td class="text-success fs-6">Unit Cost per Good Packet</td>
+                            <td class="text-end font-monospace fs-5 text-success">₹{{ run.cost_per_good_packet|floatformat:4 }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -165,38 +211,41 @@
     </div>
 
     <div class="col-12 col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-white fw-bold"><i class="bi bi-box-seam me-2 text-warning"></i>Packaging Reconciliation Details</div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush small">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Good Finished Packets:</span>
-                        <span class="fw-bold">{{ run.actual_good_output|floatformat:0 }} pkts</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Damaged Pouches (Recorded as Scrap):</span>
-                        <span class="fw-bold text-danger">{{ run.damaged_packaging_pouches|floatformat:0 }} pcs</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Total Pouches Consumed (Good + Damaged):</span>
-                        <span class="fw-bold text-primary">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3">
+                <span class="fw-bold text-dark"><i class="bi bi-box-seam me-2 text-warning"></i>Packaging Loss & Capacity Details</span>
+            </div>
+            <div class="card-body p-4">
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex justify-content-between align-items-center pb-2 border-bottom">
+                        <span class="text-muted">Good Finished Packets:</span>
+                        <span class="fw-bold font-monospace fs-6 text-dark">{{ run.actual_good_output|floatformat:0 }} pkts</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pb-2 border-bottom">
+                        <span class="text-muted">Damaged Pouches (Scrap):</span>
+                        <span class="fw-bold font-monospace text-danger">{{ run.damaged_packaging_pouches|floatformat:0 }} pcs</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pb-2 border-bottom">
+                        <span class="text-muted">Total Pouches Issued (Good + Scrap):</span>
+                        <span class="fw-bold font-monospace text-primary">
                             {{ run.actual_good_output|add:run.damaged_packaging_pouches|floatformat:0 }} pcs
                         </span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Outer Cartons Used:</span>
-                        <span class="fw-bold">{{ run.cartons_used|floatformat:0 }} pcs</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Carton Nominal Capacity ({{ run.product.pieces_per_carton }} pkts/carton):</span>
-                        <span class="fw-bold">
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pb-2 border-bottom">
+                        <span class="text-muted">Outer Corrugated Cartons Used:</span>
+                        <span class="fw-bold font-monospace">{{ run.cartons_used|floatformat:0 }} boxes</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Carton Packing Nominal Capacity:</span>
+                        <span class="fw-bold font-monospace text-secondary">
                             {% widthratio run.cartons_used 1 run.product.pieces_per_carton %} pkts
                         </span>
-                    </li>
-                </ul>
+                    </div>
+                </div>
+
                 {% if run.notes %}
-                <div class="mt-3 p-2 bg-light rounded small">
-                    <b>Supervisor Remarks:</b> {{ run.notes }}
+                <div class="mt-4 p-3 bg-light rounded border small">
+                    <strong>Batch Process Remarks:</strong> {{ run.notes }}
                 </div>
                 {% endif %}
             </div>

@@ -1,56 +1,114 @@
 {% extends 'base.html' %}
 
-{% block title %}Customer Payments Register{% endblock %}
+{% block title %}Customer Payments & Receipts Register{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'sales:order_list' %}">Sales</a></li>
+<li class="breadcrumb-item active">Customer Payments</li>
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h3 class="fw-bold mb-1">Customer Payments & Receipts Register</h3>
-        <p class="text-muted small mb-0">Record bank transfers, UPI, cheques, and cash collections against posted invoices.</p>
+        <p class="text-muted small mb-0">Record collections (NEFT/RTGS, UPI, Cheque, Cash) and track invoice settlement history.</p>
     </div>
+    {% if is_admin or is_owner %}
     <a href="{% url 'sales:payment_create' %}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i> Record New Payment
+        <i class="bi bi-plus-lg me-1"></i> Record Customer Payment
     </a>
+    {% endif %}
 </div>
 
-<div class="card">
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div class="fw-bold text-dark">
+            <i class="bi bi-cash-coin me-2 text-success"></i>Settled Receipts Register
+        </div>
+        <div>
+            <input type="text" class="form-control form-control-sm" placeholder="Search receipt, customer..." data-filter-table="#paymentTable" style="max-width: 250px;">
+        </div>
+    </div>
     <div class="card-body p-0 table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
+        <table class="table table-erp table-hover mb-0" id="paymentTable">
+            <thead>
                 <tr>
-                    <th>Receipt No</th>
+                    <th>Receipt Number</th>
                     <th>Payment Date</th>
-                    <th>Customer</th>
+                    <th>Customer Name</th>
                     <th>Payment Mode</th>
                     <th>Reference / UTR</th>
-                    <th>Allocated Invoices</th>
-                    <th class="text-end">Amount Received (₹)</th>
+                    <th>Allocated Invoice(s)</th>
+                    <th class="text-end">Amount Received</th>
                     <th>Recorded By</th>
                 </tr>
             </thead>
             <tbody>
                 {% for p in payments %}
                 <tr>
-                    <td class="fw-bold">{{ p.receipt_number }}</td>
-                    <td>{{ p.payment_date|date:"d-M-Y" }}</td>
-                    <td>{{ p.customer.name }}</td>
-                    <td><span class="badge bg-light text-dark border">{{ p.get_payment_mode_display }}</span></td>
+                    <td class="fw-bold font-monospace"><code>{{ p.receipt_number }}</code></td>
+                    <td class="text-nowrap">{{ p.payment_date|date:"d-M-Y" }}</td>
+                    <td class="fw-semibold text-dark">{{ p.customer.name }}</td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-credit-card me-1 text-primary"></i>{{ p.get_payment_mode_display }}
+                        </span>
+                    </td>
                     <td><code>{{ p.reference_number|default:"-" }}</code></td>
                     <td>
                         {% for alloc in p.allocations.all %}
-                        <div><a href="{% url 'sales:invoice_detail' alloc.invoice.id %}" class="text-decoration-none fw-semibold">{{ alloc.invoice.invoice_number }}</a>: ₹{{ alloc.allocated_amount|floatformat:2 }}</div>
+                        <div class="small">
+                            <a href="{% url 'sales:invoice_detail' alloc.invoice.id %}" class="text-decoration-none fw-semibold">
+                                <code>{{ alloc.invoice.invoice_number }}</code>
+                            </a>: <span class="font-monospace text-success">₹{{ alloc.allocated_amount|floatformat:2 }}</span>
+                        </div>
                         {% empty %}
                         <span class="text-muted small">Unallocated</span>
                         {% endfor %}
                     </td>
-                    <td class="text-end fw-bold text-success fs-6">₹{{ p.amount|floatformat:2 }}</td>
-                    <td class="small">{{ p.created_by.first_name|default:p.created_by.username }}</td>
+                    <td class="text-end fw-bold font-monospace text-success fs-6">₹{{ p.amount|floatformat:2 }}</td>
+                    <td class="small text-muted">{{ p.created_by.first_name|default:p.created_by.username }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="text-center py-4 text-muted">No payments recorded yet.</td></tr>
+                <tr>
+                    <td colspan="8">
+                        <div class="erp-empty-state">
+                            <div class="erp-empty-icon"><i class="bi bi-cash-stack"></i></div>
+                            <div class="erp-empty-title">No Payment Receipts Recorded Yet</div>
+                            <div class="erp-empty-desc">Record customer bank transfers, cheques, UPI or cash receipts to settle outstanding invoice balances.</div>
+                            <a href="{% url 'sales:payment_create' %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-lg me-1"></i> Record First Payment Receipt
+                            </a>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+{% if page_obj and page_obj.paginator.num_pages > 1 %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% endblock %}

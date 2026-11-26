@@ -1,14 +1,21 @@
 {% extends 'base.html' %}
 
-{% block title %}Sales Register Report{% endblock %}
+{% block title %}Sales Register & Tax Invoices Report{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div>
-        <h3 class="fw-bold mb-1">Sales Register & GST Tax Invoices</h3>
-        <p class="text-muted small mb-0">Detailed list of all posted sales invoices, taxable value, GST breakdown, and outstanding receivables.</p>
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="fw-bold mb-0">Sales Register & GST Tax Invoices</h3>
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 small">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Chronological Outward Book
+            </span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">Itemized record of all posted sales invoices, customer tax profiles, statutory GST breakdown, and outstanding receivables.</p>
     </div>
-    <div class="d-flex gap-2">
+    <!-- Export Actions -->
+    <div class="d-flex gap-2 flex-wrap">
         <a href="?export=csv{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn btn-outline-success btn-sm">
             <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
         </a>
@@ -18,72 +25,218 @@
         <a href="?export=pdf{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn btn-outline-danger btn-sm">
             <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
         </a>
+        <a href="?export=tally{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn btn-outline-warning text-dark btn-sm" title="Download Tally ERP 9 / TallyPrime XML import voucher format">
+            <i class="bi bi-code-slash me-1"></i> Export Tally XML
+        </a>
     </div>
 </div>
 
-<div class="card mb-4">
-    <div class="card-body py-2">
-        <form method="get" class="row g-2 align-items-center">
+<!-- Date Filtering Card -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-end">
             <div class="col-12 col-sm-4 col-md-3">
-                <label class="small text-muted fw-semibold">From Date</label>
-                <input type="date" name="start_date" value="{{ start_date|default:'' }}" class="form-control form-control-sm">
+                <label class="form-label small text-muted fw-semibold mb-1">From Date</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light"><i class="bi bi-calendar3"></i></span>
+                    <input type="date" name="start_date" value="{{ start_date|default:'' }}" class="form-control">
+                </div>
             </div>
             <div class="col-12 col-sm-4 col-md-3">
-                <label class="small text-muted fw-semibold">To Date</label>
-                <input type="date" name="end_date" value="{{ end_date|default:'' }}" class="form-control form-control-sm">
+                <label class="form-label small text-muted fw-semibold mb-1">To Date</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light"><i class="bi bi-calendar3"></i></span>
+                    <input type="date" name="end_date" value="{{ end_date|default:'' }}" class="form-control">
+                </div>
             </div>
-            <div class="col-12 col-sm-4 col-md-3 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i> Filter</button>
+            <div class="col-12 col-sm-4 col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm px-3">
+                    <i class="bi bi-funnel me-1"></i> Filter Date Range
+                </button>
+                {% if start_date or end_date %}
                 <a href="{% url 'reports:sales_register' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+                {% endif %}
+            </div>
+            <div class="col-12 col-md-3 text-md-end">
+                <input type="text" data-filter-table="#salesRegisterTable" class="form-control form-control-sm d-inline-block" placeholder="Search customer, invoice..." style="max-width: 200px;">
             </div>
         </form>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-body p-0 table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>Invoice No</th>
-                    <th>Date</th>
-                    <th>Customer</th>
-                    <th>State</th>
-                    <th class="text-end">Taxable (₹)</th>
-                    <th class="text-end">CGST (₹)</th>
-                    <th class="text-end">SGST (₹)</th>
-                    <th class="text-end">IGST (₹)</th>
-                    <th class="text-end">Total Amount (₹)</th>
-                    <th class="text-end">Balance Due (₹)</th>
-                    <th class="text-center">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for inv in invoices %}
-                <tr>
-                    <td class="fw-bold"><a href="{% url 'sales:invoice_detail' inv.id %}" class="text-decoration-none">{{ inv.invoice_number }}</a></td>
-                    <td>{{ inv.invoice_date|date:"d-M-Y" }}</td>
-                    <td>{{ inv.customer.name }}</td>
-                    <td>{{ inv.customer.state }}</td>
-                    <td class="text-end">₹{{ inv.taxable_value|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ inv.cgst_amount|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ inv.sgst_amount|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ inv.igst_amount|floatformat:2 }}</td>
-                    <td class="text-end fw-bold">₹{{ inv.total_amount|floatformat:2 }}</td>
-                    <td class="text-end fw-bold text-danger">₹{{ inv.outstanding_amount|floatformat:2 }}</td>
-                    <td class="text-center">
-                        {% if inv.status == 'POSTED' %}<span class="badge bg-primary">Posted</span>
-                        {% elif inv.status == 'PARTIALLY_PAID' %}<span class="badge bg-warning text-dark">Partially Paid</span>
-                        {% elif inv.status == 'PAID' %}<span class="badge bg-success">Paid</span>
-                        {% elif inv.status == 'CANCELLED' %}<span class="badge bg-secondary">Cancelled</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="11" class="text-center py-4 text-muted">No sales invoices found for selected range.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<!-- Sales Register Tabs Card -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-2 border-bottom">
+        <ul class="nav nav-tabs card-header-tabs" id="salesTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-semibold" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices-pane" type="button" role="tab">
+                    <i class="bi bi-receipt me-1 text-primary"></i>Invoices Register ({{ invoices|length }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers-pane" type="button" role="tab">
+                    <i class="bi bi-people me-1 text-success"></i>Customer-Wise Sales ({{ customer_sales|length }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="products-tab" data-bs-toggle="tab" data-bs-target="#products-pane" type="button" role="tab">
+                    <i class="bi bi-box-seam me-1 text-warning"></i>Product-Wise Sales ({{ product_sales|length }})
+                </button>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="card-body p-0">
+        <div class="tab-content" id="salesTabsContent">
+            <!-- Tab 1: Invoices Register -->
+            <div class="tab-pane fade show active table-responsive" id="invoices-pane" role="tabpanel">
+                <table id="salesRegisterTable" class="table table-erp table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Invoice No</th>
+                            <th>Date</th>
+                            <th>Customer Name</th>
+                            <th>Place of Supply</th>
+                            <th class="text-end">Taxable (₹)</th>
+                            <th class="text-end">CGST (₹)</th>
+                            <th class="text-end">SGST (₹)</th>
+                            <th class="text-end">IGST (₹)</th>
+                            <th class="text-end">Total Amount (₹)</th>
+                            <th class="text-end">Balance Due (₹)</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in invoices %}
+                        <tr>
+                            <td class="fw-bold">
+                                <a href="{% url 'sales:invoice_detail' inv.id %}" class="text-decoration-none text-primary">
+                                    {{ inv.invoice_number }}
+                                </a>
+                            </td>
+                            <td class="small text-muted text-nowrap">{{ inv.invoice_date|date:"d-M-Y" }}</td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ inv.customer.name }}</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">GSTIN: {{ inv.customer_gstin|default:"Unregistered (URP)" }}</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-muted border">{{ inv.customer.state }}</span>
+                            </td>
+                            <td class="text-end fw-semibold text-dark">₹{{ inv.taxable_value|floatformat:2 }}</td>
+                            <td class="text-end small text-muted">₹{{ inv.cgst_amount|floatformat:2 }}</td>
+                            <td class="text-end small text-muted">₹{{ inv.sgst_amount|floatformat:2 }}</td>
+                            <td class="text-end small text-muted">₹{{ inv.igst_amount|floatformat:2 }}</td>
+                            <td class="text-end fw-bold text-dark">₹{{ inv.total_amount|floatformat:2 }}</td>
+                            <td class="text-end fw-bold {% if inv.outstanding_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                                ₹{{ inv.outstanding_amount|floatformat:2 }}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-status badge-status-{{ inv.status|lower }}">{{ inv.get_status_display }}</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="11" class="py-5">
+                                <div class="erp-empty-state text-center">
+                                    <i class="bi bi-file-earmark-spreadsheet text-muted fs-2"></i>
+                                    <h6 class="mt-2 text-muted fw-bold">No Sales Invoices Found</h6>
+                                    <p class="text-muted small mb-0">No invoices have been posted within the specified date filter.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tab 2: Customer-Wise Sales Breakdown -->
+            <div class="tab-pane fade table-responsive" id="customers-pane" role="tabpanel">
+                <table class="table table-erp table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Customer Name</th>
+                            <th>Jurisdiction / State</th>
+                            <th>Category</th>
+                            <th class="text-center">Invoices</th>
+                            <th class="text-end">Taxable Revenue (₹)</th>
+                            <th class="text-end">Total GST (₹)</th>
+                            <th class="text-end">Gross Invoiced (₹)</th>
+                            <th class="text-end">Paid (₹)</th>
+                            <th class="text-end">Balance Due (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cs in customer_sales %}
+                        <tr>
+                            <td class="fw-bold text-dark">{{ cs.customer__name }}</td>
+                            <td><span class="badge bg-light text-muted border">{{ cs.customer__state }}</span></td>
+                            <td><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">{{ cs.customer__customer_type }}</span></td>
+                            <td class="text-center font-monospace">{{ cs.total_invoices }}</td>
+                            <td class="text-end font-monospace">₹{{ cs.total_taxable|floatformat:2 }}</td>
+                            <td class="text-end font-monospace small text-muted">₹{{ cs.total_tax|floatformat:2 }}</td>
+                            <td class="text-end font-monospace fw-bold text-dark">₹{{ cs.total_amount|floatformat:2 }}</td>
+                            <td class="text-end font-monospace text-success">₹{{ cs.total_paid|floatformat:2 }}</td>
+                            <td class="text-end font-monospace fw-bold {% if cs.total_outstanding > 0 %}text-danger{% else %}text-success{% endif %}">
+                                ₹{{ cs.total_outstanding|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="py-5">
+                                <div class="erp-empty-state text-center">
+                                    <i class="bi bi-people text-muted fs-2"></i>
+                                    <h6 class="mt-2 text-muted fw-bold">No Customer Sales Data</h6>
+                                    <p class="text-muted small mb-0">No sales have been finalized for customers within the active filter.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tab 3: Product-Wise Sales Breakdown -->
+            <div class="tab-pane fade table-responsive" id="products-pane" role="tabpanel">
+                <table class="table table-erp table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>SKU</th>
+                            <th>HSN Code</th>
+                            <th class="text-end">Total Quantity Sold</th>
+                            <th class="text-end">Avg Realized Rate (₹)</th>
+                            <th class="text-end">Taxable Revenue (₹)</th>
+                            <th class="text-end">GST Collected (₹)</th>
+                            <th class="text-end">Total Gross Revenue (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ps in product_sales %}
+                        <tr>
+                            <td class="fw-bold text-dark">{{ ps.product__name }}</td>
+                            <td><code>{{ ps.product__sku }}</code></td>
+                            <td><span class="badge bg-light text-muted border">{{ ps.product__hsn_code }}</span></td>
+                            <td class="text-end font-monospace fw-bold text-primary">{{ ps.total_quantity|floatformat:0 }} pkts</td>
+                            <td class="text-end font-monospace">₹{{ ps.avg_rate|floatformat:2 }}</td>
+                            <td class="text-end font-monospace">₹{{ ps.total_taxable|floatformat:2 }}</td>
+                            <td class="text-end font-monospace small text-muted">₹{{ ps.total_tax|floatformat:2 }}</td>
+                            <td class="text-end font-monospace fw-bold text-success fs-6">₹{{ ps.total_amount|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="py-5">
+                                <div class="erp-empty-state text-center">
+                                    <i class="bi bi-box-seam text-muted fs-2"></i>
+                                    <h6 class="mt-2 text-muted fw-bold">No Product Sales Data</h6>
+                                    <p class="text-muted small mb-0">No product items have been invoiced within the active filter.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -2,136 +2,190 @@
 
 {% block title %}Tax Invoice {{ invoice.invoice_number }}{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'sales:order_list' %}">Sales</a></li>
+<li class="breadcrumb-item"><a href="{% url 'sales:invoice_list' %}">GST Invoices</a></li>
+<li class="breadcrumb-item active">{{ invoice.invoice_number }}</li>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 no-print">
     <div>
-        <h3 class="fw-bold mb-1">Tax Invoice: {{ invoice.invoice_number }}</h3>
-        <p class="text-muted small mb-0">Financial Year: {{ invoice.financial_year }} &bull; Date: {{ invoice.invoice_date|date:"d-M-Y" }}</p>
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="fw-bold mb-0">Tax Invoice: {{ invoice.invoice_number }}</h3>
+            {% if invoice.status == 'POSTED' %}<span class="badge-status badge-status-submitted">Unpaid</span>
+            {% elif invoice.status == 'PARTIALLY_PAID' %}<span class="badge-status badge-status-partial">Partially Paid</span>
+            {% elif invoice.status == 'PAID' %}<span class="badge-status badge-status-paid">Paid in Full</span>
+            {% elif invoice.status == 'CANCELLED' %}<span class="badge-status badge-status-rejected">Cancelled</span>
+            {% endif %}
+        </div>
+        <p class="text-muted small mb-0 mt-1">
+            Financial Year: {{ invoice.financial_year }} &bull; Issued on {{ invoice.invoice_date|date:"d-M-Y" }} &bull; Place of Supply: {{ invoice.place_of_supply }}
+        </p>
     </div>
     <div class="d-flex gap-2">
-        <a href="{% url 'sales:invoice_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Invoices Register</a>
-        <a href="{% url 'sales:invoice_pdf_view' invoice.id %}" target="_blank" class="btn btn-danger btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i> Download PDF Invoice</a>
+        <a href="{% url 'sales:invoice_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Invoices Register
+        </a>
+        <button type="button" onclick="window.print()" class="btn btn-outline-dark btn-sm">
+            <i class="bi bi-printer me-1"></i> Quick Print
+        </button>
+        <a href="{% url 'sales:invoice_pdf_view' invoice.id %}" target="_blank" class="btn btn-danger btn-sm">
+            <i class="bi bi-file-earmark-pdf me-1"></i> Official PDF Invoice
+        </a>
+        <a href="https://api.whatsapp.com/send?phone={{ invoice.customer.phone|default:'' }}&text=Dear%20{{ invoice.customer.name|urlencode }},%20your%20Tax%20Invoice%20{{ invoice.invoice_number }}%20for%20Rs.{{ invoice.total_amount }}%20from%20{{ FACTORY_NAME|urlencode }}%20is%20ready." target="_blank" class="btn btn-success btn-sm" title="Share invoice link directly via WhatsApp">
+            <i class="bi bi-whatsapp me-1"></i> WhatsApp Share
+        </a>
+        {% if invoice.customer.email %}
+        <a href="mailto:{{ invoice.customer.email }}?subject=Tax%20Invoice%20{{ invoice.invoice_number }}%20-%20{{ FACTORY_NAME|urlencode }}&body=Dear%20{{ invoice.customer.name|urlencode }},%0A%0APlease%20find%20your%20Tax%20Invoice%20{{ invoice.invoice_number }}%20for%20total%20amount%20Rs.%20{{ invoice.total_amount }}%20from%20{{ FACTORY_NAME|urlencode }}.%0A%0AThank%20you!" class="btn btn-outline-primary btn-sm" title="Email invoice details to customer">
+            <i class="bi bi-envelope me-1"></i> Email
+        </a>
+        {% endif %}
         {% if invoice.status != 'CANCELLED' and is_admin %}
-        <a href="{% url 'sales:invoice_credit_note' invoice.id %}" class="btn btn-outline-warning text-dark btn-sm"><i class="bi bi-x-circle me-1"></i> Cancel via Credit Note</a>
+        <a href="{% url 'sales:invoice_credit_note' invoice.id %}" class="btn btn-outline-warning text-dark btn-sm">
+            <i class="bi bi-x-circle me-1"></i> Credit Note / Cancel
+        </a>
         {% endif %}
     </div>
 </div>
 
-<div class="card p-4 shadow-sm mb-4">
-    <!-- Header -->
-    <div class="row pb-3 mb-3 border-bottom align-items-center">
-        <div class="col-8">
-            <h4 class="fw-bold text-primary mb-1">{{ FACTORY_NAME }}</h4>
-            <div class="small text-muted">
-                {{ FACTORY_ADDRESS }}<br/>
-                <b>GSTIN:</b> {{ FACTORY_GSTIN }} | <b>State:</b> {{ FACTORY_STATE }} (Code: 33)
+<div class="card p-4 p-md-5 shadow-sm border-0 mb-4 print-invoice">
+    <!-- Factory Header -->
+    <div class="row pb-4 mb-4 border-bottom align-items-start">
+        <div class="col-7">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <div class="brand-logo" style="width: 38px; height: 38px;">
+                    <i class="bi bi-box-seam-fill"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-0">{{ FACTORY_NAME }}</h4>
+            </div>
+            <div class="small text-muted" style="line-height: 1.5;">
+                {{ FACTORY_ADDRESS }}<br>
+                <b>GSTIN:</b> <span class="font-monospace text-dark fw-bold">{{ FACTORY_GSTIN }}</span> &bull; 
+                <b>State:</b> {{ FACTORY_STATE }} (State Code: 33)
             </div>
         </div>
-        <div class="col-4 text-end">
-            <span class="badge bg-primary fs-6 mb-2">TAX INVOICE</span>
-            <div class="small text-muted"><b>Invoice No:</b> {{ invoice.invoice_number }}</div>
+        <div class="col-5 text-end">
+            <span class="badge bg-primary px-3 py-2 fs-6 mb-2 text-uppercase" style="letter-spacing: 0.05em;">TAX INVOICE</span>
+            <div class="small text-muted font-monospace"><b>Invoice No:</b> <span class="text-dark fw-bold">{{ invoice.invoice_number }}</span></div>
             <div class="small text-muted"><b>Date:</b> {{ invoice.invoice_date|date:"d-M-Y" }}</div>
+            {% if invoice.order %}
+            <div class="small text-muted font-monospace"><b>Ref Order:</b> {{ invoice.order.order_number }}</div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Bill To / Ship To -->
-    <div class="row pb-3 mb-3 border-bottom">
+    <!-- Bill To / Jurisdiction Grid -->
+    <div class="row pb-4 mb-4 border-bottom">
         <div class="col-6">
-            <h6 class="fw-bold text-uppercase small text-muted mb-2">Billed To (Customer):</h6>
-            <div class="fw-bold fs-6">{{ invoice.customer.name }}</div>
-            <div class="small text-muted">
-                {{ invoice.customer.billing_address }}<br/>
-                <b>State:</b> {{ invoice.customer.state }} | <b>Place of Supply:</b> {{ invoice.place_of_supply }}<br/>
-                <b>GSTIN:</b> {{ invoice.customer_gstin|default:"URP / Unregistered" }}
+            <h6 class="fw-bold text-uppercase small text-muted mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">Billed Customer (Recipient):</h6>
+            <div class="fw-bold fs-6 text-dark mb-1">{{ invoice.customer.name }}</div>
+            <div class="small text-muted" style="line-height: 1.5;">
+                {{ invoice.customer.billing_address }}<br>
+                <b>State Jurisdiction:</b> {{ invoice.customer.state }} &bull; <b>Place of Supply:</b> {{ invoice.place_of_supply }}<br>
+                <b>GSTIN:</b> <span class="font-monospace fw-bold text-dark">{{ invoice.customer_gstin|default:"URP / Unregistered Retailer" }}</span>
             </div>
         </div>
         <div class="col-6">
-            <h6 class="fw-bold text-uppercase small text-muted mb-2">Tax Structure:</h6>
+            <h6 class="fw-bold text-uppercase small text-muted mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">Statutory GST Structure:</h6>
             <div>
                 {% if invoice.is_inter_state %}
-                <span class="badge bg-warning text-dark fs-6"><i class="bi bi-arrow-left-right me-1"></i> Inter-State Supply (IGST 5%)</span>
-                <div class="small text-muted mt-1">Inter-state transaction from {{ FACTORY_STATE }} to {{ invoice.customer.state }}.</div>
+                <span class="badge bg-warning bg-opacity-15 text-warning border border-warning border-opacity-25 fs-6 py-2 px-3">
+                    <i class="bi bi-arrow-left-right me-1"></i> Inter-State Supply (IGST 5.0%)
+                </span>
+                <div class="small text-muted mt-2">
+                    Goods crossing state boundary from <b>{{ FACTORY_STATE }}</b> to <b>{{ invoice.customer.state }}</b>. Integrated GST (IGST) is levied.
+                </div>
                 {% else %}
-                <span class="badge bg-info bg-opacity-10 text-primary fs-6"><i class="bi bi-building me-1"></i> Intra-State Supply (CGST 2.5% + SGST 2.5%)</span>
-                <div class="small text-muted mt-1">Intra-state transaction within {{ FACTORY_STATE }}.</div>
+                <span class="badge bg-info bg-opacity-15 text-info border border-info border-opacity-25 fs-6 py-2 px-3">
+                    <i class="bi bi-building me-1"></i> Intra-State Supply (CGST 2.5% + SGST 2.5%)
+                </span>
+                <div class="small text-muted mt-2">
+                    Supply within <b>{{ FACTORY_STATE }}</b>. Dual GST split equally into Central (CGST) and State (SGST) revenue.
+                </div>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Items Table -->
+    <!-- Line Items Table -->
     <div class="table-responsive mb-4">
-        <table class="table table-bordered mb-0">
+        <table class="table table-bordered mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>#</th>
-                    <th>Product Description</th>
-                    <th>HSN</th>
-                    <th class="text-end">Qty</th>
-                    <th>Unit</th>
-                    <th class="text-end">Rate (₹)</th>
-                    <th class="text-end">Taxable Value (₹)</th>
+                    <th style="width: 4%;">#</th>
+                    <th style="width: 32%;">Item Description</th>
+                    <th style="width: 10%;">HSN Code</th>
+                    <th class="text-end" style="width: 9%;">Quantity</th>
+                    <th style="width: 7%;">UOM</th>
+                    <th class="text-end" style="width: 10%;">Unit Rate</th>
+                    <th class="text-end" style="width: 12%;">Taxable Value</th>
                     {% if invoice.is_inter_state %}
-                    <th class="text-end">IGST 5% (₹)</th>
+                    <th class="text-end" style="width: 16%;">IGST 5%</th>
                     {% else %}
-                    <th class="text-end">CGST 2.5% (₹)</th>
-                    <th class="text-end">SGST 2.5% (₹)</th>
+                    <th class="text-end" style="width: 8%;">CGST 2.5%</th>
+                    <th class="text-end" style="width: 8%;">SGST 2.5%</th>
                     {% endif %}
-                    <th class="text-end">Total (₹)</th>
+                    <th class="text-end" style="width: 16%;">Total Amount (₹)</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in invoice.items.all %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
-                    <td class="fw-bold">{{ item.product.name }}</td>
-                    <td><code>{{ item.hsn_code }}</code></td>
-                    <td class="text-end fw-semibold">{{ item.quantity|floatformat:0 }}</td>
+                    <td>
+                        <div class="fw-bold text-dark">{{ item.product.name }}</div>
+                        <small class="text-muted font-monospace"><code>{{ item.product.sku }}</code></small>
+                    </td>
+                    <td><code class="fw-bold">{{ item.hsn_code }}</code></td>
+                    <td class="text-end font-monospace fw-bold">{{ item.quantity|floatformat:0 }}</td>
                     <td>{{ item.product.uom.code }}</td>
-                    <td class="text-end">₹{{ item.unit_price|floatformat:2 }}</td>
-                    <td class="text-end fw-bold">₹{{ item.taxable_value|floatformat:2 }}</td>
+                    <td class="text-end font-monospace">₹{{ item.unit_price|floatformat:2 }}</td>
+                    <td class="text-end font-monospace fw-bold">₹{{ item.taxable_value|floatformat:2 }}</td>
                     {% if invoice.is_inter_state %}
-                    <td class="text-end">₹{{ item.igst_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace">₹{{ item.igst_amount|floatformat:2 }}</td>
                     {% else %}
-                    <td class="text-end">₹{{ item.cgst_amount|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ item.sgst_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace">₹{{ item.cgst_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace">₹{{ item.sgst_amount|floatformat:2 }}</td>
                     {% endif %}
-                    <td class="text-end fw-bold text-success">₹{{ item.total_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace fw-bold text-dark">₹{{ item.total_amount|floatformat:2 }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
-            <tfoot class="table-light fw-bold">
+            <tfoot class="table-light fw-bold border-top">
                 <tr>
-                    <td colspan="6" class="text-end">Grand Totals:</td>
-                    <td class="text-end">₹{{ invoice.taxable_value|floatformat:2 }}</td>
+                    <td colspan="6" class="text-end text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.05em;">Invoice Totals:</td>
+                    <td class="text-end font-monospace">₹{{ invoice.taxable_value|floatformat:2 }}</td>
                     {% if invoice.is_inter_state %}
-                    <td class="text-end">₹{{ invoice.igst_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace">₹{{ invoice.igst_amount|floatformat:2 }}</td>
                     {% else %}
-                    <td class="text-end">₹{{ invoice.cgst_amount|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ invoice.sgst_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace">₹{{ invoice.cgst_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace">₹{{ invoice.sgst_amount|floatformat:2 }}</td>
                     {% endif %}
-                    <td class="text-end text-primary fs-5">₹{{ invoice.total_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace text-primary fs-5">₹{{ invoice.total_amount|floatformat:2 }}</td>
                 </tr>
             </tfoot>
         </table>
     </div>
 
-    <!-- Settlement Breakdown -->
+    <!-- Settlement & Collections History Grid -->
     <div class="row g-4">
         <div class="col-md-6">
             <div class="card bg-light border-0 h-100 p-3">
-                <h6 class="fw-bold small text-uppercase text-muted mb-2">Payment History & Allocations:</h6>
+                <h6 class="fw-bold small text-uppercase text-muted mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                    Payment Allocations History:
+                </h6>
                 {% if invoice.allocations.exists %}
                 <ul class="list-group list-group-flush small">
                     {% for alloc in invoice.allocations.all %}
                     <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center py-2 px-0">
                         <span>Receipt <b>{{ alloc.payment.receipt_number }}</b> ({{ alloc.payment.payment_date|date:"d-M-Y" }} via {{ alloc.payment.get_payment_mode_display }})</span>
-                        <span class="fw-bold text-success">+₹{{ alloc.allocated_amount|floatformat:2 }}</span>
+                        <span class="fw-bold text-success font-monospace">+₹{{ alloc.allocated_amount|floatformat:2 }}</span>
                     </li>
                     {% endfor %}
                 </ul>
                 {% else %}
-                <div class="text-muted small">No payment receipts allocated against this invoice yet.</div>
+                <div class="text-muted small py-2">No payment allocations recorded yet against this tax invoice.</div>
                 {% endif %}
             </div>
         </div>
@@ -141,23 +195,25 @@
                 <table class="table table-sm table-borderless mb-0">
                     <tbody>
                         <tr>
-                            <td class="text-muted">Total Invoice Amount:</td>
-                            <td class="text-end fw-bold fs-6">₹{{ invoice.total_amount|floatformat:2 }}</td>
+                            <td class="text-muted">Total Invoice Value:</td>
+                            <td class="text-end fw-bold font-monospace fs-6">₹{{ invoice.total_amount|floatformat:2 }}</td>
                         </tr>
                         <tr>
-                            <td class="text-muted">Total Paid / Received:</td>
-                            <td class="text-end fw-bold text-success fs-6">- ₹{{ invoice.paid_amount|floatformat:2 }}</td>
+                            <td class="text-muted">Total Received Amount:</td>
+                            <td class="text-end fw-bold font-monospace text-success fs-6">- ₹{{ invoice.paid_amount|floatformat:2 }}</td>
                         </tr>
                         <tr class="border-top">
-                            <td class="fw-bold fs-6">Net Outstanding Balance Due:</td>
-                            <td class="text-end fw-bold fs-5 text-danger">₹{{ invoice.outstanding_amount|floatformat:2 }}</td>
+                            <td class="fw-bold fs-6 text-dark">Net Outstanding Due:</td>
+                            <td class="text-end fw-bold font-monospace fs-5 {% if invoice.outstanding_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                                ₹{{ invoice.outstanding_amount|floatformat:2 }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
                 {% if invoice.outstanding_amount > 0 and is_admin %}
-                <div class="mt-3 text-end">
+                <div class="mt-3 text-end no-print">
                     <a href="{% url 'sales:payment_create' %}?invoice_id={{ invoice.id }}" class="btn btn-sm btn-success">
-                        <i class="bi bi-cash me-1"></i> Record Payment for Invoice
+                        <i class="bi bi-cash me-1"></i> Record Customer Payment
                     </a>
                 </div>
                 {% endif %}

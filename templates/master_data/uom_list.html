@@ -1,38 +1,58 @@
 {% extends 'base.html' %}
 
-{% block title %}Units of Measure & Conversion{% endblock %}
+{% block title %}Units of Measure & Conversion Logic{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Units of Measure</li>
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-        <h3 class="fw-bold mb-1">Units of Measure & Conversion Logic</h3>
-        <p class="text-muted small mb-0">Centralized unit conversions for weights, volumes, individual counts and cartons.</p>
+        <h3 class="fw-bold mb-1">Units of Measure & Conversion Matrix</h3>
+        <p class="text-muted small mb-0">Foundational physical conversion standards: Mass, Volume, Discrete Count, and Packing Cartons.</p>
     </div>
 </div>
 
 <div class="row g-4">
     <div class="col-12 col-lg-7">
-        <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-rulers me-2 text-primary"></i>Configured Measurement Units</div>
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3">
+                <span class="fw-bold text-dark"><i class="bi bi-rulers me-2 text-primary"></i>Configured Measurement Standards</span>
+            </div>
             <div class="card-body p-0 table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
+                <table class="table table-erp table-hover mb-0">
+                    <thead>
                         <tr>
-                            <th>Symbol</th>
-                            <th>Unit Name</th>
+                            <th>Unit Symbol</th>
+                            <th>Unit Description</th>
                             <th>Physical Category</th>
-                            <th>Base Unit Reference</th>
-                            <th>Conversion Factor</th>
+                            <th>Base Standard</th>
+                            <th class="text-end">Base Multiplier</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for u in uoms %}
                         <tr>
-                            <td class="fw-bold"><span class="badge bg-light text-dark border">{{ u.code }}</span></td>
-                            <td>{{ u.name }}</td>
-                            <td><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ u.get_category_display }}</span></td>
-                            <td>{{ u.base_unit.code|default:"Base Standard" }}</td>
-                            <td><code>{{ u.conversion_factor }}</code></td>
+                            <td class="fw-bold"><span class="badge bg-light text-dark border px-2 py-1 font-monospace fs-6">{{ u.code }}</span></td>
+                            <td class="fw-semibold">{{ u.name }}</td>
+                            <td>
+                                {% if u.category == 'MASS' %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">Mass / Weight</span>
+                                {% elif u.category == 'VOLUME' %}
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">Volume / Liquid</span>
+                                {% elif u.category == 'CONTAINER' %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">Outer Container</span>
+                                {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">Count / Packet</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ u.base_unit.code|default:"Fundamental Base" }}</td>
+                            <td class="text-end font-monospace"><code>{{ u.conversion_factor }}</code></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No measurement units configured.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -41,30 +61,39 @@
         </div>
     </div>
 
-    <!-- Live Conversion Test Tool -->
+    <!-- Live Conversion Test Engine -->
     <div class="col-12 col-lg-5">
-        <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-arrow-repeat me-2 text-success"></i>Interactive Unit Conversion Engine</div>
-            <div class="card-body">
-                <p class="small text-muted">Test mathematical and container-level conversions (e.g. 9 cartons to packets based on product carton capacity).</p>
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3">
+                <span class="fw-bold text-dark"><i class="bi bi-calculator me-2 text-success"></i>Interactive Unit Conversion Engine</span>
+            </div>
+            <div class="card-body p-4">
+                <p class="small text-muted mb-3">
+                    Validates physical unit mathematics (e.g., kg to grams, Litres to ml) and dynamic outer carton conversions based on product packaging capacities.
+                </p>
 
                 {% if converted_result %}
-                <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
-                    <i class="bi bi-check-circle-fill fs-5"></i>
-                    <div class="fw-bold">{{ converted_result }}</div>
+                <div class="alert alert-success d-flex align-items-center gap-2 mb-4 shadow-sm">
+                    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                    <div>
+                        <div class="small text-muted">Conversion Result:</div>
+                        <div class="fw-bold fs-5 text-dark font-monospace">{{ converted_result }}</div>
+                    </div>
                 </div>
                 {% endif %}
 
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="convert" value="1">
+                    
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Quantity</label>
-                        <input type="number" step="0.001" name="quantity" class="form-control" value="9" required>
+                        <label class="form-label">Input Quantity <span class="text-danger">*</span></label>
+                        <input type="number" step="0.001" name="quantity" class="form-control form-control-lg fw-bold" value="9" required>
                     </div>
+
                     <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <label class="form-label small fw-semibold">From Unit</label>
+                            <label class="form-label">Source Unit <span class="text-danger">*</span></label>
                             <select name="from_uom" class="form-select" required>
                                 {% for u in uoms %}
                                 <option value="{{ u.id }}" {% if u.code == 'ctn' %}selected{% endif %}>{{ u.name }} ({{ u.code }})</option>
@@ -72,7 +101,7 @@
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-semibold">To Unit</label>
+                            <label class="form-label">Target Unit <span class="text-danger">*</span></label>
                             <select name="to_uom" class="form-select" required>
                                 {% for u in uoms %}
                                 <option value="{{ u.id }}" {% if u.code == 'pkt' %}selected{% endif %}>{{ u.name }} ({{ u.code }})</option>
@@ -80,17 +109,20 @@
                             </select>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Product (Required for Cartons)</label>
+
+                    <div class="mb-4">
+                        <label class="form-label">Product Link (Required for Carton Conversions)</label>
                         <select name="product" class="form-select">
-                            <option value="">-- None (Physical units only) --</option>
+                            <option value="">-- None (Direct Physical Conversion) --</option>
                             {% for p in products %}
                             <option value="{{ p.id }}" selected>{{ p.name }} ({{ p.pieces_per_carton }} pkts/carton)</option>
                             {% endfor %}
                         </select>
+                        <small class="text-muted">Outer cartons convert to retail packets according to product packaging specifications.</small>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 btn-sm">
-                        <i class="bi bi-calculator me-1"></i> Calculate Conversion
+
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="bi bi-arrow-repeat me-1"></i> Compute Mathematical Conversion
                     </button>
                 </form>
             </div>

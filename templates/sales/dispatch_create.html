@@ -2,24 +2,39 @@
 
 {% block title %}Record Dispatch - Order {{ order.order_number }}{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'sales:order_list' %}">Sales</a></li>
+<li class="breadcrumb-item"><a href="{% url 'sales:order_detail' order.id %}">{{ order.order_number }}</a></li>
+<li class="breadcrumb-item active">Dispatch</li>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-7">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-                <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2 text-primary"></i>Record Finished Goods Dispatch</h5>
-                <p class="text-muted small mb-0">Order: <b>{{ order.order_number }}</b> &bull; Customer: {{ order.customer.name }}</p>
+    <div class="col-12 col-md-9 col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2 text-primary"></i>Record Finished Goods Dispatch</h5>
+                    <p class="text-muted small mb-0">Order: <b>{{ order.order_number }}</b> &bull; Customer: {{ order.customer.name }}</p>
+                </div>
+                <a href="{% url 'sales:order_detail' order.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Order Detail
+                </a>
             </div>
+
             <div class="card-body p-4">
                 <!-- Check shortages -->
                 {% for st in items_stock %}
                 {% if st.shortage > 0 %}
-                <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
-                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                <div class="alert alert-danger border-danger border-opacity-50 shadow-sm d-flex align-items-center gap-3 mb-4">
+                    <i class="bi bi-exclamation-triangle-fill fs-3 text-danger"></i>
                     <div>
-                        <b>Stock Shortage Alert!</b> {{ st.item.product.name }}: Requested {{ st.item.quantity|floatformat:0 }} pkts,
-                        Available in Stock: {{ st.available|floatformat:0 }} pkts. Shortage: {{ st.shortage|floatformat:0 }} pkts.
-                        Attempting dispatch will be blocked by inventory validation to prevent negative stock!
+                        <h6 class="fw-bold mb-1">Insufficient Finished Stock in Warehouse!</h6>
+                        <div class="small">
+                            <b>{{ st.item.product.name }}</b>: Requested: <b>{{ st.item.quantity|floatformat:0 }} pkts</b>,
+                            Available in Stock: <b>{{ st.available|floatformat:0 }} pkts</b>. Deficit: <b class="text-danger">{{ st.shortage|floatformat:0 }} pkts</b>.
+                            The database transaction will enforce negative-stock guards and block dispatch if quantity exceeds available stock.
+                        </div>
                     </div>
                 </div>
                 {% endif %}
@@ -28,27 +43,28 @@
                 <form method="post">
                     {% csrf_token %}
 
-                    <div class="table-responsive mb-4">
-                        <table class="table table-bordered align-middle">
-                            <thead class="table-light">
+                    <div class="table-responsive rounded border mb-4">
+                        <table class="table table-erp table-hover mb-0 align-middle">
+                            <thead>
                                 <tr>
-                                    <th>Product</th>
+                                    <th>Product Name</th>
                                     <th>Ordered Qty</th>
-                                    <th>Available Stock</th>
-                                    <th>Dispatch Quantity</th>
+                                    <th>Available Warehouse Stock</th>
+                                    <th style="width: 200px;">Dispatch Quantity <span class="text-danger">*</span></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for st in items_stock %}
                                 <tr>
-                                    <td class="fw-bold">{{ st.item.product.name }}</td>
-                                    <td>{{ st.item.quantity|floatformat:0 }} pkts</td>
-                                    <td class="{% if st.shortage > 0 %}text-danger fw-bold{% else %}text-success{% endif %}">
+                                    <td class="fw-bold text-dark">{{ st.item.product.name }}</td>
+                                    <td class="font-monospace">{{ st.item.quantity|floatformat:0 }} pkts</td>
+                                    <td class="{% if st.shortage > 0 %}text-danger fw-bold{% else %}text-success fw-bold{% endif %} font-monospace">
                                         {{ st.available|floatformat:0 }} pkts
                                     </td>
                                     <td>
                                         <input type="number" step="1" name="dispatch_qty_{{ st.item.product.id }}"
-                                            class="form-control form-control-sm fw-bold" value="{{ st.item.quantity|floatformat:0 }}" required>
+                                               class="form-control form-control-sm fw-bold font-monospace" 
+                                               value="{{ st.item.quantity|floatformat:0 }}" required>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -57,24 +73,24 @@
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label small fw-semibold">Transporter / Courier Name</label>
-                            <input type="text" name="transporter_name" class="form-control" value="SRT Logistics" placeholder="e.g. SRT Logistics">
+                        <div class="col-md-6">
+                            <label class="form-label">Transporter / Logistics Carrier</label>
+                            <input type="text" name="transporter_name" class="form-control" value="SRT Logistics" placeholder="e.g. SRT Logistics / VRL Logistics">
                         </div>
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label small fw-semibold">Vehicle Number</label>
-                            <input type="text" name="vehicle_number" class="form-control" value="TN-45-AZ-1234" placeholder="e.g. TN-45-AZ-1234">
+                        <div class="col-md-6">
+                            <label class="form-label">Vehicle Registration Number</label>
+                            <input type="text" name="vehicle_number" class="form-control font-monospace" value="TN-45-AZ-1234" placeholder="e.g. TN-45-AZ-1234">
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label small fw-semibold">Dispatch Notes / LR Reference</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Lorry receipt (LR) number, driver contact..."></textarea>
+                        <label class="form-label">Dispatch Notes & LR Number</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Lorry receipt (LR) reference, driver contact number, e-Way bill code..."></textarea>
                     </div>
 
-                    <div class="d-flex justify-content-end gap-2">
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
                         <a href="{% url 'sales:order_detail' order.id %}" class="btn btn-outline-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary px-4">
                             <i class="bi bi-box-arrow-up-right me-1"></i> Confirm Dispatch & Deduct Stock
                         </button>
                     </div>

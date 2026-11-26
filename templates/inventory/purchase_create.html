@@ -2,67 +2,124 @@
 
 {% block title %}Record Inward Purchase Receipt{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'inventory:stock_summary' %}">Inventory</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inventory:purchase_list' %}">Purchases</a></li>
+<li class="breadcrumb-item active">New Receipt</li>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-7">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-                <h5 class="fw-bold mb-1"><i class="bi bi-cart-plus me-2 text-primary"></i>Record Inward Purchase Receipt</h5>
-                <p class="text-muted small mb-0">Atomically adds stock to inventory ledger and re-calculates the material's Weighted Average Cost (WAC).</p>
+    <div class="col-12 col-md-9 col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-cart-plus me-2 text-primary"></i>Inward Purchase Goods Receipt Note (GRN)</h5>
+                    <p class="text-muted small mb-0">Record material deliveries, update stock ledgers, and recalculate Weighted Average Cost (WAC).</p>
+                </div>
+                <a href="{% url 'inventory:purchase_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Purchases List
+                </a>
             </div>
+
             <div class="card-body p-4">
-                <form method="post">
+                {% if not suppliers %}
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <div>
+                        <strong>No Vendors Found:</strong> You need to register a supplier before recording inward purchases.
+                        <a href="{% url 'master_data:supplier_list' %}" class="alert-link ms-2">Register Supplier Now &rarr;</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if not items %}
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <div>
+                        <strong>No Materials Found:</strong> You must create raw material ingredients or packaging materials first.
+                        <a href="{% url 'inventory:item_create' %}" class="alert-link ms-2">Add Inventory Item &rarr;</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" id="purchaseForm">
                     {% csrf_token %}
+                    
                     <div class="row g-3 mb-3">
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label small fw-semibold">Supplier Vendor</label>
-                            <select name="supplier" class="form-select" required>
+                        <div class="col-md-6">
+                            <label class="form-label">Vendor / Supplier <span class="text-danger">*</span></label>
+                            <select name="supplier" class="form-select form-select-lg" required {% if not suppliers %}disabled{% endif %}>
+                                <option value="">-- Choose Vendor --</option>
                                 {% for s in suppliers %}
-                                <option value="{{ s.id }}">{{ s.name }} ({{ s.state }})</option>
+                                <option value="{{ s.id }}">{{ s.name }} ({{ s.state }}{% if s.gstin %} &bull; {{ s.gstin }}{% endif %})</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label small fw-semibold">Receipt Date</label>
-                            <input type="date" name="purchase_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                        <div class="col-md-6">
+                            <label class="form-label">Receipt Date <span class="text-danger">*</span></label>
+                            <input type="date" name="purchase_date" class="form-control form-control-lg" value="{% now 'Y-m-d' %}" required>
                         </div>
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label small fw-semibold">Supplier Bill / Invoice No</label>
-                            <input type="text" name="supplier_invoice_no" class="form-control" placeholder="e.g. BILL-8890" required>
+                        <div class="col-md-6">
+                            <label class="form-label">Vendor Bill / Delivery Challan No <span class="text-danger">*</span></label>
+                            <input type="text" name="supplier_invoice_no" class="form-control" placeholder="e.g. INV-2026-9041 / DC-482" required>
                         </div>
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label small fw-semibold">Material Item</label>
-                            <select name="item" class="form-select" required>
+                        <div class="col-md-6">
+                            <label class="form-label">Material / Packaging Item <span class="text-danger">*</span></label>
+                            <select name="item" id="itemSelect" class="form-select" required {% if not items %}disabled{% endif %}>
+                                <option value="">-- Choose Item --</option>
                                 {% for itm in items %}
-                                <option value="{{ itm.id }}">{{ itm.name }} [{{ itm.uom.code }}] - Current WAC: ₹{{ itm.weighted_avg_cost|floatformat:2 }}</option>
+                                <option value="{{ itm.id }}" data-uom="{{ itm.uom.code }}" data-wac="{{ itm.weighted_avg_cost }}">
+                                    {{ itm.name }} ({{ itm.sku }}) - In Stock: {{ itm.current_stock|floatformat:2 }} {{ itm.uom.code }}
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label small fw-semibold">Quantity Received</label>
-                            <input type="number" step="0.001" name="quantity" class="form-control" placeholder="e.g. 60" required>
+                        <div class="col-md-6">
+                            <label class="form-label">Quantity Received <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" step="0.001" name="quantity" id="qtyInput" class="form-control form-control-lg fw-bold" placeholder="0.000" required>
+                                <span class="input-group-text" id="uomBadge">Unit</span>
+                            </div>
                         </div>
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label small fw-semibold">Purchase Rate / Unit (₹)</label>
-                            <input type="number" step="0.01" name="unit_price" class="form-control" placeholder="e.g. 45.00" required>
+                        <div class="col-md-6">
+                            <label class="form-label">Unit Rate Before Tax (₹) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" step="0.01" name="unit_price" id="rateInput" class="form-control form-control-lg fw-bold" placeholder="0.00" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Calculation Card -->
+                    <div class="card bg-light border-0 p-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Total Line Purchase Amount</div>
+                                <div class="fw-bold fs-4 text-primary" id="totalPreview">₹0.00</div>
+                            </div>
+                            <div class="text-end small text-muted">
+                                Stock increases immediately upon posting.<br>
+                                Material WAC automatically recalculates.
+                            </div>
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label small fw-semibold">Purchase Notes</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Quality check / batch comments..."></textarea>
+                        <label class="form-label">Receipt & Quality Notes</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Quality approval, vehicle number, batch stamp..."></textarea>
                     </div>
 
-                    <div class="d-flex justify-content-end gap-2">
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
                         <a href="{% url 'inventory:purchase_list' %}" class="btn btn-outline-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check2-circle me-1"></i> Post Inward Receipt
+                        <button type="submit" class="btn btn-primary px-4" {% if not suppliers or not items %}disabled{% endif %}>
+                            <i class="bi bi-check2-circle me-1"></i> Post Inward Stock Receipt
                         </button>
                     </div>
                 </form>
@@ -70,4 +127,34 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemSelect = document.getElementById('itemSelect');
+    const uomBadge = document.getElementById('uomBadge');
+    const qtyInput = document.getElementById('qtyInput');
+    const rateInput = document.getElementById('rateInput');
+    const totalPreview = document.getElementById('totalPreview');
+
+    function updateCalc() {
+        const selected = itemSelect.options[itemSelect.selectedIndex];
+        if (selected && selected.getAttribute('data-uom')) {
+            uomBadge.innerText = selected.getAttribute('data-uom');
+        } else {
+            uomBadge.innerText = 'Unit';
+        }
+
+        const qty = parseFloat(qtyInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 0;
+        const total = qty * rate;
+        totalPreview.innerText = '₹' + total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    itemSelect.addEventListener('change', updateCalc);
+    qtyInput.addEventListener('input', updateCalc);
+    rateInput.addEventListener('input', updateCalc);
+});
+</script>
 {% endblock %}

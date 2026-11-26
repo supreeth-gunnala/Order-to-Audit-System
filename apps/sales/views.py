@@ -1,9 +1,11 @@
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
+from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse
 from django.utils import timezone
+from django.db.models import Sum, Count, Q
 from apps.core.permissions import salesman_only, admin_only, audit_or_admin
 from .models import (
     SalesOrder, SalesOrderItem, OrderStatus,
@@ -24,10 +26,16 @@ from apps.core.models import AuditLog
 def salesman_dashboard(request):
     user = request.user
     if user.is_salesman:
-        customers = Customer.objects.filter(assigned_salesman=user, is_active=True)
+        customers = Customer.objects.filter(assigned_salesman=user, is_active=True).annotate(
+            total_sales=Sum('orders__total_amount', filter=Q(orders__salesman=user)),
+            total_orders=Count('orders', filter=Q(orders__salesman=user))
+        )
         orders = SalesOrder.objects.filter(salesman=user).order_by('-order_date')[:10]
     else:
-        customers = Customer.objects.filter(is_active=True)
+        customers = Customer.objects.filter(is_active=True).annotate(
+            total_sales=Sum('orders__total_amount'),
+            total_orders=Count('orders')
+        )
         orders = SalesOrder.objects.order_by('-order_date')[:10]
 
     return render(request, 'sales/salesman_dashboard.html', {
@@ -128,10 +136,15 @@ def order_list(request):
     if status_filter:
         orders = orders.filter(status=status_filter)
 
+    paginator = Paginator(orders.order_by('-order_date', '-id'), 10)  # 10 per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     return render(request, 'sales/order_list.html', {
-        'orders': orders.order_by('-order_date', '-id'),
+        'page_obj': page_obj,
+        'orders': page_obj.object_list,
         'statuses': OrderStatus.choices,
-        'selected_status': status_filter
+        'selected_status': status_filter,
+        'paginator': paginator,
     })
 
 
@@ -296,7 +309,17 @@ def dispatch_create(request, order_id):
 @audit_or_admin
 def invoice_list(request):
     invoices = Invoice.objects.select_related('customer', 'order', 'created_by').order_by('-invoice_date', '-id')
-    return render(request, 'sales/invoice_list.html', {'invoices': invoices})
+    status_filter = request.GET.get('status')
+    if status_filter:
+        invoices = invoices.filter(status=status_filter)
+    paginator = Paginator(invoices, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'sales/invoice_list.html', {
+        'page_obj': page_obj,
+        'invoices': page_obj.object_list,
+        'selected_status': status_filter
+    })
 
 
 @login_required
@@ -320,10 +343,16 @@ def invoice_pdf_view(request, pk):
 
 
 @login_required
-@admin_only
+@audit_or_admin
 def payment_list(request):
     payments = Payment.objects.select_related('customer', 'created_by').prefetch_related('allocations__invoice').order_by('-payment_date', '-id')
-    return render(request, 'sales/payment_list.html', {'payments': payments})
+    paginator = Paginator(payments, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'sales/payment_list.html', {
+        'page_obj': page_obj,
+        'payments': page_obj.object_list
+    })
 
 
 @login_required

@@ -1,26 +1,45 @@
 {% extends 'base.html' %}
 
-{% block title %}Execute Production Run{% endblock %}
+{% block title %}Execute Production Run & Costing{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'production:dashboard' %}">Manufacturing</a></li>
+<li class="breadcrumb-item active">Execute Batch Run</li>
+{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-12 col-lg-10">
-        <div class="card shadow-sm">
+    <div class="col-12 col-xl-10">
+        <div class="card shadow-sm border-0">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="fw-bold mb-1"><i class="bi bi-play-circle me-2 text-primary"></i>Execute Production Run & Costing</h5>
-                    <p class="text-muted small mb-0">Record actual ingredient consumption, good packets output, damaged pouches, and manufacturing overheads.</p>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-play-circle me-2 text-primary"></i>Batch Production Execution & Costing</h5>
+                    <p class="text-muted small mb-0">Record actual ingredient consumption, finished packets output, damaged pouches, and manufacturing overheads.</p>
                 </div>
-                <span class="badge bg-info bg-opacity-10 text-primary border">Tolerance: {{ VARIANCE_TOLERANCE_PERCENT }}%</span>
+                <span class="badge bg-info bg-opacity-10 text-primary border border-info border-opacity-25 px-2 py-1">
+                    Tolerance: {{ VARIANCE_TOLERANCE_PERCENT }}%
+                </span>
             </div>
+
             <div class="card-body p-4">
+                {% if not boms %}
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <div>
+                        <strong>No Active Recipe Found:</strong> You must create a Bill of Materials (BOM) recipe before executing production runs.
+                        <a href="{% url 'production:bom_create' %}" class="alert-link ms-2">Define Recipe Now &rarr;</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if boms %}
                 <form method="post" id="runForm">
                     {% csrf_token %}
 
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-md-5">
-                            <label class="form-label small fw-semibold">Bill of Materials (Recipe)</label>
-                            <select name="bom" id="bomSelect" class="form-select" onchange="window.location.href='?bom_id='+this.value">
+                            <label class="form-label">Bill of Materials (Recipe Formulation) <span class="text-danger">*</span></label>
+                            <select name="bom" id="bomSelect" class="form-select form-select-lg" onchange="window.location.href='?bom_id='+this.value">
                                 {% for b in boms %}
                                 <option value="{{ b.id }}" {% if selected_bom.id == b.id %}selected{% endif %}>
                                     {{ b.name }} (Yield: {{ b.expected_output_packets|floatformat:0 }} pkts)
@@ -29,47 +48,58 @@
                             </select>
                         </div>
                         <div class="col-6 col-md-3">
-                            <label class="form-label small fw-semibold">Batch Multiplier</label>
-                            <input type="number" step="0.1" name="batch_size" id="batchSize" class="form-control" value="1.0" required>
+                            <label class="form-label">Batch Multiplier <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" step="0.1" name="batch_size" id="batchSize" class="form-control form-control-lg fw-bold" value="1.0" required>
+                                <span class="input-group-text">x Batch</span>
+                            </div>
                         </div>
                         <div class="col-6 col-md-4">
-                            <label class="form-label small fw-semibold">Production Date</label>
-                            <input type="date" name="production_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                            <label class="form-label">Production Date <span class="text-danger">*</span></label>
+                            <input type="date" name="production_date" class="form-control form-control-lg" value="{% now 'Y-m-d' %}" required>
                         </div>
                     </div>
 
                     <!-- Raw Material Consumptions Section -->
-                    <div class="card mb-4 bg-light bg-opacity-50 border">
-                        <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted">
-                            <i class="bi bi-basket me-1 text-primary"></i> 1. Actual Raw Material Ingredient Consumptions
+                    <div class="card mb-4 bg-light border-0">
+                        <div class="card-header bg-white py-2 fw-bold text-dark border-bottom d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-basket me-1 text-primary"></i> 1. Actual Raw Material Ingredient Consumptions</span>
+                            <span class="small text-muted">Stock reductions occur from Raw Materials inventory</span>
                         </div>
                         <div class="card-body p-3">
-                            <div class="table-responsive">
-                                <table class="table table-sm table-bordered bg-white mb-0 align-middle">
-                                    <thead class="table-light">
+                            <div class="table-responsive bg-white rounded border">
+                                <table class="table table-erp table-hover mb-0 align-middle">
+                                    <thead>
                                         <tr>
-                                            <th>Ingredient</th>
+                                            <th>Ingredient Name</th>
                                             <th>Standard Planned</th>
                                             <th>Current WAC</th>
-                                            <th>Actual Quantity Issued</th>
-                                            <th>Unit</th>
+                                            <th style="width: 200px;">Actual Quantity Issued <span class="text-danger">*</span></th>
+                                            <th>UOM</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for comp in selected_bom.components.all %}
                                         {% if not comp.is_packaging %}
                                         <tr>
-                                            <td class="fw-semibold">{{ comp.item.name }}</td>
-                                            <td class="text-muted">{{ comp.quantity|floatformat:3 }}</td>
-                                            <td class="text-muted small">₹{{ comp.item.weighted_avg_cost|floatformat:2 }}/{{ comp.unit.code }}</td>
+                                            <td class="fw-semibold text-dark">
+                                                {{ comp.item.name }}
+                                                <small class="text-muted d-block font-monospace"><code>{{ comp.item.sku }}</code></small>
+                                            </td>
+                                            <td class="text-muted font-monospace">{{ comp.quantity|floatformat:3 }}</td>
+                                            <td class="text-muted small font-monospace">₹{{ comp.item.weighted_avg_cost|floatformat:2 }}/{{ comp.unit.code }}</td>
                                             <td>
-                                                <!-- Benchmark default pre-fills -->
-                                                <input type="number" step="0.001" name="actual_qty_{{ comp.item.id }}" class="form-control form-control-sm fw-bold"
-                                                    value="{% if 'flour' in comp.item.name|lower %}40.000{% elif 'oil' in comp.item.name|lower %}10.500{% elif 'spice' in comp.item.name|lower %}1.200{% else %}{{ comp.quantity }}{% endif %}" required>
+                                                <input type="number" step="0.001" name="actual_qty_{{ comp.item.id }}" 
+                                                       class="form-control form-control-sm fw-bold font-monospace"
+                                                       value="{{ comp.quantity }}" required>
                                             </td>
                                             <td><span class="badge bg-light text-dark border">{{ comp.unit.code }}</span></td>
                                         </tr>
                                         {% endif %}
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="5" class="text-center py-3 text-muted small">No ingredients linked to this BOM.</td>
+                                        </tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
@@ -78,62 +108,81 @@
                     </div>
 
                     <!-- Output & Packaging Reconciliation Section -->
-                    <div class="card mb-4 bg-light bg-opacity-50 border">
-                        <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted">
-                            <i class="bi bi-box-seam me-1 text-warning"></i> 2. Output & Packaging Reconciliation
+                    <div class="card mb-4 bg-light border-0">
+                        <div class="card-header bg-white py-2 fw-bold text-dark border-bottom">
+                            <i class="bi bi-box-seam me-1 text-warning"></i> 2. Finished Output & Packaging Reconciliation
                         </div>
                         <div class="card-body p-3">
                             <div class="row g-3">
                                 <div class="col-12 col-md-4">
-                                    <label class="form-label small fw-semibold">Actual Good Output (Packets)</label>
-                                    <input type="number" step="1" name="actual_good_output" class="form-control fw-bold text-primary" value="188" required>
-                                    <div class="form-text small">Expected: {{ selected_bom.expected_output_packets|floatformat:0 }} pkts (Yield variance will be evaluated)</div>
+                                    <label class="form-label">Actual Good Packets Output <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="number" step="1" name="actual_good_output" class="form-control form-control-lg fw-bold text-primary font-monospace" 
+                                               value="{{ selected_bom.expected_output_packets|floatformat:0 }}" required>
+                                        <span class="input-group-text">pkts</span>
+                                    </div>
+                                    <div class="form-text small">Planned: {{ selected_bom.expected_output_packets|floatformat:0 }} pkts. Variances &gt; {{ VARIANCE_TOLERANCE_PERCENT }}% will trigger compliance alerts.</div>
                                 </div>
                                 <div class="col-12 col-md-4">
-                                    <label class="form-label small fw-semibold">Damaged Packaging Pouches</label>
-                                    <input type="number" step="1" name="damaged_pouches" class="form-control" value="6" required>
-                                    <div class="form-text small">Deducted as packaging damage / scrap</div>
+                                    <label class="form-label">Damaged Packaging Pouches</label>
+                                    <div class="input-group">
+                                        <input type="number" step="1" name="damaged_pouches" class="form-control form-control-lg" value="0" required>
+                                        <span class="input-group-text">pouches</span>
+                                    </div>
+                                    <div class="form-text small">Scrapped or torn film during machine sealing.</div>
                                 </div>
                                 <div class="col-12 col-md-4">
-                                    <label class="form-label small fw-semibold">Outer Cartons Used</label>
-                                    <input type="number" step="1" name="cartons_used" class="form-control" value="9" required>
-                                    <div class="form-text small">Carton capacity: {{ selected_bom.product.pieces_per_carton }} pkts/ctn</div>
+                                    <label class="form-label">Outer Shipping Cartons Used</label>
+                                    <div class="input-group">
+                                        <input type="number" step="1" name="cartons_used" class="form-control form-control-lg" value="0" required>
+                                        <span class="input-group-text">boxes</span>
+                                    </div>
+                                    <div class="form-text small">Box capacity: {{ selected_bom.product.pieces_per_carton }} pkts/carton.</div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Manufacturing Overheads Section -->
-                    <div class="card mb-4 bg-light bg-opacity-50 border">
-                        <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted">
+                    <div class="card mb-4 bg-light border-0">
+                        <div class="card-header bg-white py-2 fw-bold text-dark border-bottom">
                             <i class="bi bi-lightning-charge me-1 text-danger"></i> 3. Direct Overheads & Conversion Costs
                         </div>
                         <div class="card-body p-3">
                             <div class="row g-3">
                                 <div class="col-12 col-sm-6">
-                                    <label class="form-label small fw-semibold">Direct Labour Cost (₹)</label>
-                                    <input type="number" step="0.01" name="labour_cost" class="form-control" value="1200.00" required>
+                                    <label class="form-label">Direct Labour Cost (₹) <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        <input type="number" step="0.01" name="labour_cost" class="form-control fw-bold" value="1200.00" required>
+                                    </div>
+                                    <small class="text-muted">Batch direct wages (fryer operator, packaging helpers).</small>
                                 </div>
                                 <div class="col-12 col-sm-6">
-                                    <label class="form-label small fw-semibold">Gas & Power Overhead (₹)</label>
-                                    <input type="number" step="0.01" name="gas_power_cost" class="form-control" value="600.00" required>
+                                    <label class="form-label">Gas & Power Overhead (₹) <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        <input type="number" step="0.01" name="gas_power_cost" class="form-control fw-bold" value="600.00" required>
+                                    </div>
+                                    <small class="text-muted">Commercial LPG fuel and electricity consumed for batch heating.</small>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label small fw-semibold">Production Notes & Supervisor Remarks</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Quality checks, frying temperature notes..."></textarea>
+                        <label class="form-label">Production Batch Notes & Quality Remarks</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Quality checks, moisture levels, crispness rating, fryer temperature..."></textarea>
                     </div>
 
-                    <div class="d-flex justify-content-end gap-2">
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
                         <a href="{% url 'production:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
                         <button type="submit" class="btn btn-primary px-4 py-2">
                             <i class="bi bi-check2-circle me-1"></i> Post Completed Production Run
                         </button>
                     </div>
                 </form>
+                {% endif %}
             </div>
         </div>
     </div>

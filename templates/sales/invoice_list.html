@@ -1,73 +1,136 @@
 {% extends 'base.html' %}
 
-{% block title %}GST Invoices Register{% endblock %}
+{% block title %}GST Tax Invoices Register{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'sales:order_list' %}">Sales</a></li>
+<li class="breadcrumb-item active">GST Invoices</li>
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h3 class="fw-bold mb-1">GST Tax Invoices Register</h3>
-        <p class="text-muted small mb-0">Sequential tax invoices compliant with Indian GST rules (CGST/SGST and IGST separation).</p>
+        <p class="text-muted small mb-0">Statutory tax invoices compliant with Indian GST rules (separate CGST/SGST and IGST ledgers).</p>
     </div>
-    <a href="{% url 'sales:payment_create' %}" class="btn btn-primary btn-sm">
-        <i class="bi bi-cash-coin me-1"></i> Record Customer Payment
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'sales:payment_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-cash-coin me-1"></i> Record Customer Payment
+        </a>
+    </div>
 </div>
 
-<div class="card">
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div class="fw-bold text-dark">
+            <i class="bi bi-file-earmark-text me-2 text-primary"></i>Outward Tax Invoices
+        </div>
+        <div>
+            <input type="text" class="form-control form-control-sm" placeholder="Search invoice, customer..." data-filter-table="#invoiceTable" style="max-width: 250px;">
+        </div>
+    </div>
     <div class="card-body p-0 table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
+        <table class="table table-erp table-hover mb-0" id="invoiceTable">
+            <thead>
                 <tr>
                     <th>Invoice Number</th>
-                    <th>Date</th>
-                    <th>Customer</th>
-                    <th>Tax Rule</th>
-                    <th class="text-end">Taxable (₹)</th>
-                    <th class="text-end">CGST (₹)</th>
-                    <th class="text-end">SGST (₹)</th>
-                    <th class="text-end">IGST (₹)</th>
-                    <th class="text-end">Total Amount (₹)</th>
+                    <th>Invoice Date</th>
+                    <th>Customer Name</th>
+                    <th>Jurisdiction</th>
+                    <th class="text-end">Taxable Value</th>
+                    <th class="text-end">CGST</th>
+                    <th class="text-end">SGST</th>
+                    <th class="text-end">IGST</th>
+                    <th class="text-end">Total Invoice (₹)</th>
                     <th class="text-end">Outstanding Due (₹)</th>
-                    <th class="text-center">Status</th>
+                    <th class="text-center">Payment Status</th>
                     <th class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for inv in invoices %}
                 <tr>
-                    <td class="fw-bold"><a href="{% url 'sales:invoice_detail' inv.id %}" class="text-decoration-none">{{ inv.invoice_number }}</a></td>
-                    <td>{{ inv.invoice_date|date:"d-M-Y" }}</td>
-                    <td>{{ inv.customer.name }} <span class="badge bg-light text-muted">{{ inv.customer.state }}</span></td>
+                    <td class="fw-bold">
+                        <a href="{% url 'sales:invoice_detail' inv.id %}" class="text-decoration-none font-monospace">
+                            <code>{{ inv.invoice_number }}</code>
+                        </a>
+                    </td>
+                    <td class="text-nowrap">{{ inv.invoice_date|date:"d-M-Y" }}</td>
+                    <td>
+                        <div class="fw-semibold text-dark">{{ inv.customer.name }}</div>
+                        <small class="text-muted">{{ inv.customer.state }}</small>
+                    </td>
                     <td>
                         {% if inv.is_inter_state %}
-                        <span class="badge bg-warning text-dark">Inter-state (IGST)</span>
+                        <span class="badge bg-warning bg-opacity-15 text-warning border border-warning border-opacity-25" style="font-size: 0.68rem;">IGST</span>
                         {% else %}
-                        <span class="badge bg-info bg-opacity-10 text-primary">Intra-state (CGST+SGST)</span>
+                        <span class="badge bg-info bg-opacity-15 text-info border border-info border-opacity-25" style="font-size: 0.68rem;">CGST+SGST</span>
                         {% endif %}
                     </td>
-                    <td class="text-end">₹{{ inv.taxable_value|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ inv.cgst_amount|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ inv.sgst_amount|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ inv.igst_amount|floatformat:2 }}</td>
-                    <td class="text-end fw-bold">₹{{ inv.total_amount|floatformat:2 }}</td>
-                    <td class="text-end fw-bold text-danger">₹{{ inv.outstanding_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace text-muted">₹{{ inv.taxable_value|floatformat:2 }}</td>
+                    <td class="text-end font-monospace text-muted">₹{{ inv.cgst_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace text-muted">₹{{ inv.sgst_amount|floatformat:2 }}</td>
+                    <td class="text-end font-monospace text-muted">₹{{ inv.igst_amount|floatformat:2 }}</td>
+                    <td class="text-end fw-bold font-monospace text-dark fs-6">₹{{ inv.total_amount|floatformat:2 }}</td>
+                    <td class="text-end fw-bold font-monospace {% if inv.outstanding_amount > 0 %}text-danger{% else %}text-success{% endif %} fs-6">
+                        ₹{{ inv.outstanding_amount|floatformat:2 }}
+                    </td>
                     <td class="text-center">
-                        {% if inv.status == 'POSTED' %}<span class="badge bg-primary">Posted</span>
-                        {% elif inv.status == 'PARTIALLY_PAID' %}<span class="badge bg-warning text-dark">Partially Paid</span>
-                        {% elif inv.status == 'PAID' %}<span class="badge bg-success">Fully Paid</span>
-                        {% elif inv.status == 'CANCELLED' %}<span class="badge bg-secondary">Cancelled</span>
+                        {% if inv.status == 'POSTED' %}<span class="badge-status badge-status-submitted">Unpaid</span>
+                        {% elif inv.status == 'PARTIALLY_PAID' %}<span class="badge-status badge-status-partial">Partially Paid</span>
+                        {% elif inv.status == 'PAID' %}<span class="badge-status badge-status-paid">Paid in Full</span>
+                        {% elif inv.status == 'CANCELLED' %}<span class="badge-status badge-status-rejected">Cancelled</span>
                         {% endif %}
                     </td>
                     <td class="text-center text-nowrap">
-                        <a href="{% url 'sales:invoice_detail' inv.id %}" class="btn btn-sm btn-outline-primary py-0">View</a>
-                        <a href="{% url 'sales:invoice_pdf_view' inv.id %}" target="_blank" class="btn btn-sm btn-outline-danger py-0" title="Download PDF"><i class="bi bi-file-pdf"></i></a>
+                        <a href="{% url 'sales:invoice_detail' inv.id %}" class="btn btn-sm btn-outline-primary py-1 px-2">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                        <a href="{% url 'sales:invoice_pdf_view' inv.id %}" target="_blank" class="btn btn-sm btn-outline-danger py-1 px-2" title="Download Official Tax PDF">
+                            <i class="bi bi-file-pdf"></i> PDF
+                        </a>
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="12" class="text-center py-4 text-muted">No invoices generated yet.</td></tr>
+                <tr>
+                    <td colspan="12">
+                        <div class="erp-empty-state">
+                            <div class="erp-empty-icon"><i class="bi bi-receipt"></i></div>
+                            <div class="erp-empty-title">No GST Invoices Generated Yet</div>
+                            <div class="erp-empty-desc">Once sales orders are verified and approved by admin, tax invoices can be generated with automatic HSN, CGST, SGST, and IGST breakdowns.</div>
+                            <a href="{% url 'sales:order_list' %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-cart-check me-1"></i> Review Sales Orders
+                            </a>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+{% if page_obj and page_obj.paginator.num_pages > 1 %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% endblock %}

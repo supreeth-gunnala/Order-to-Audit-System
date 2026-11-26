@@ -18,6 +18,13 @@ def product_list(request):
         name = request.POST.get('name')
         sku = request.POST.get('sku')
         cat_id = request.POST.get('category')
+        new_cat_name = request.POST.get('new_category', '').strip()
+        if new_cat_name:
+            cat, _ = ProductCategory.objects.get_or_create(name=new_cat_name)
+            cat_id = cat.id
+        elif not cat_id:
+            cat, _ = ProductCategory.objects.get_or_create(name='Traditional Savouries')
+            cat_id = cat.id
         pack_size = Decimal(request.POST.get('pack_size', '200'))
         pack_unit_id = request.POST.get('pack_unit')
         price = Decimal(request.POST.get('selling_price', '50'))
@@ -26,7 +33,7 @@ def product_list(request):
         uom_id = request.POST.get('uom')
         carton_cap = int(request.POST.get('pieces_per_carton', '20'))
 
-        Product.objects.create(
+        prod = Product.objects.create(
             name=name,
             sku=sku,
             category_id=cat_id,
@@ -38,7 +45,23 @@ def product_list(request):
             uom_id=uom_id,
             pieces_per_carton=carton_cap
         )
-        messages.success(request, f"Product '{name}' created successfully.")
+        
+        # Ensure corresponding Finished Goods inventory item exists
+        from apps.inventory.models import InventoryItem, ItemType
+        InventoryItem.objects.get_or_create(
+            linked_product=prod,
+            defaults={
+                'sku': f"FG-{prod.sku}",
+                'name': f"{prod.name} (FG)",
+                'item_type': ItemType.FINISHED_GOOD,
+                'uom': prod.uom,
+                'reorder_level': Decimal('50.000'),
+                'current_stock': Decimal('0.000'),
+                'weighted_avg_cost': Decimal('0.0000')
+            }
+        )
+        
+        messages.success(request, f"Product '{name}' and linked Finished Goods inventory item created successfully.")
         return redirect('master_data:product_list')
 
     return render(request, 'master_data/product_list.html', {

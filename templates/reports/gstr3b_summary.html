@@ -3,45 +3,58 @@
 {% block title %}GSTR-3B Outward Tax Summary{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div>
-        <h3 class="fw-bold mb-1">GSTR-3B Style Outward Tax Summary</h3>
-        <p class="text-muted small mb-0">Management summary for monthly tax return verification under Section 3.1 of GSTR-3B.</p>
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="fw-bold mb-0">GSTR-3B Style Outward Tax Summary</h3>
+            <span class="badge bg-warning bg-opacity-10 text-dark border border-warning px-2 py-1 small">
+                <i class="bi bi-receipt-cutoff me-1"></i>Table 3.1 Return Summary
+            </span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">Management summary for monthly tax return verification under Section 3.1 of statutory form GSTR-3B.</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="{% url 'reports:auditor_dashboard' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Auditor Portal</a>
+        <a href="{% url 'reports:auditor_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Auditor Portal
+        </a>
     </div>
 </div>
 
-<div class="alert alert-light border small text-muted mb-4">
-    <i class="bi bi-info-circle me-1"></i> <b>Statutory Notice:</b> Internal Management & Auditor Export Summary. Prepared for tax return preparation and audit reconciliation.
+<!-- Statutory Notice Banner -->
+<div class="alert alert-light border border-secondary border-opacity-25 d-flex align-items-center gap-2 mb-4 shadow-sm">
+    <i class="bi bi-info-circle text-primary fs-5"></i>
+    <div class="small text-muted">
+        <b class="text-dark">Statutory Disclaimer:</b> Internal Management & Auditor Export Summary. Prepared for tax return preparation, audit reconciliation, and return filing review.
+    </div>
 </div>
 
-<div class="card mb-4 shadow-sm">
-    <div class="card-header bg-white py-3 fw-bold">
+<!-- Table 3.1 Card -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 fw-bold border-bottom">
         <i class="bi bi-card-checklist me-2 text-primary"></i>3.1 Details of Outward Supplies and inward supplies liable to reverse charge
     </div>
     <div class="card-body p-0 table-responsive">
-        <table class="table table-bordered mb-0 align-middle">
+        <table class="table table-erp table-bordered mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Nature of Supplies</th>
+                    <th style="min-width: 320px;">Nature of Supplies</th>
                     <th class="text-end">Total Taxable Value (₹)</th>
                     <th class="text-end">Integrated Tax (₹)</th>
                     <th class="text-end">Central Tax (₹)</th>
                     <th class="text-end">State/UT Tax (₹)</th>
-                    <th class="text-end">Total Tax (₹)</th>
+                    <th class="text-end">Total Tax Liability (₹)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td class="fw-semibold">
+                    <td class="fw-semibold text-dark">
                         (a) Outward taxable supplies (other than zero rated, nil rated and exempted)
                     </td>
-                    <td class="text-end fw-bold">₹{{ data.outward_taxable_supplies.taxable_value|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ data.outward_taxable_supplies.integrated_tax|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ data.outward_taxable_supplies.central_tax|floatformat:2 }}</td>
-                    <td class="text-end">₹{{ data.outward_taxable_supplies.state_tax|floatformat:2 }}</td>
+                    <td class="text-end fw-bold text-dark">₹{{ data.outward_taxable_supplies.taxable_value|floatformat:2 }}</td>
+                    <td class="text-end text-muted">₹{{ data.outward_taxable_supplies.integrated_tax|floatformat:2 }}</td>
+                    <td class="text-end text-muted">₹{{ data.outward_taxable_supplies.central_tax|floatformat:2 }}</td>
+                    <td class="text-end text-muted">₹{{ data.outward_taxable_supplies.state_tax|floatformat:2 }}</td>
                     <td class="text-end fw-bold text-primary">₹{{ data.outward_taxable_supplies.total_tax|floatformat:2 }}</td>
                 </tr>
                 <tr>
@@ -60,11 +73,27 @@
                     <td class="text-end text-muted">₹0.00</td>
                     <td class="text-end text-muted">₹0.00</td>
                 </tr>
+                <tr>
+                    <td class="text-muted">(d) Inward supplies (liable to reverse charge)</td>
+                    <td class="text-end text-muted">₹0.00</td>
+                    <td class="text-end text-muted">₹0.00</td>
+                    <td class="text-end text-muted">₹0.00</td>
+                    <td class="text-end text-muted">₹0.00</td>
+                    <td class="text-end text-muted">₹0.00</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">(e) Non-GST outward supplies</td>
+                    <td class="text-end text-muted">₹0.00</td>
+                    <td class="text-end text-muted">₹0.00</td>
+                    <td class="text-end text-muted">₹0.00</td>
+                    <td class="text-end text-muted">₹0.00</td>
+                    <td class="text-end text-muted">₹0.00</td>
+                </tr>
             </tbody>
             <tfoot class="table-light fw-bold">
                 <tr>
-                    <td>Total Outward Tax Liability:</td>
-                    <td class="text-end">₹{{ data.outward_taxable_supplies.taxable_value|floatformat:2 }}</td>
+                    <td class="text-dark">Total Net Outward Tax Liability Payable:</td>
+                    <td class="text-end text-dark">₹{{ data.outward_taxable_supplies.taxable_value|floatformat:2 }}</td>
                     <td class="text-end">₹{{ data.outward_taxable_supplies.integrated_tax|floatformat:2 }}</td>
                     <td class="text-end">₹{{ data.outward_taxable_supplies.central_tax|floatformat:2 }}</td>
                     <td class="text-end">₹{{ data.outward_taxable_supplies.state_tax|floatformat:2 }}</td>
