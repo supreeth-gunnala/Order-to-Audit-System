@@ -1,92 +1,92 @@
-{% extends 'base.html' %}
+    {% extends 'base.html' %}
 
-{% block title %}Add Raw Material or Packaging Material{% endblock %}
+    {% block title %}Add Raw Material or Packaging Material{% endblock %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'inventory:stock_summary' %}">Inventory</a></li>
-<li class="breadcrumb-item active">Add Item</li>
-{% endblock %}
+    {% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'inventory:stock_summary' %}">Inventory</a></li>
+    <li class="breadcrumb-item active">Add Item</li>
+    {% endblock %}
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-                <div>
-                    <h5 class="fw-bold mb-1"><i class="bi bi-box-seam me-2 text-primary"></i>Register New Inventory Item</h5>
-                    <p class="text-muted small mb-0">Create a raw material ingredient or packaging material with optional initial opening balance.</p>
+    {% block content %}
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="fw-bold mb-1"><i class="bi bi-box-seam me-2 text-primary"></i>Register New Inventory Item</h5>
+                        <p class="text-muted small mb-0">Create a raw material ingredient or packaging material with optional initial opening balance.</p>
+                    </div>
+                    <a href="{% url 'inventory:stock_summary' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Inventory
+                    </a>
                 </div>
-                <a href="{% url 'inventory:stock_summary' %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i> Back to Inventory
-                </a>
-            </div>
 
-            <div class="card-body p-4">
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Item Classification <span class="text-danger">*</span></label>
-                            <select name="item_type" class="form-select form-select-lg fw-semibold" required>
-                                {% for val, label in item_types %}
-                                <option value="{{ val }}">{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                            <small class="text-muted">Distinguish between recipe ingredients and packing pouches/cartons.</small>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Item Classification <span class="text-danger">*</span></label>
+                                <select name="item_type" class="form-select form-select-lg fw-semibold" required>
+                                    {% for val, label in item_types %}
+                                    <option value="{{ val }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Distinguish between recipe ingredients and packing pouches/cartons.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">SKU / Item Code <span class="text-danger">*</span></label>
+                                <input type="text" name="sku" class="form-control form-control-lg fw-bold" placeholder="e.g. RM-BESAN, PKG-POUCH-200" required>
+                                <small class="text-muted">Unique inventory identifier code.</small>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">SKU / Item Code <span class="text-danger">*</span></label>
-                            <input type="text" name="sku" class="form-control form-control-lg fw-bold" placeholder="e.g. RM-BESAN, PKG-POUCH-200" required>
-                            <small class="text-muted">Unique inventory identifier code.</small>
-                        </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Item Description / Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. Gram Flour (Besan) Grade-A / Printed 200g Murukku Pouch" required>
-                    </div>
+                        <div class="mb-3">
+                            <label class="form-label">Item Description / Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" placeholder="e.g. Gram Flour (Besan) Grade-A / Printed 200g Murukku Pouch" required>
+                        </div>
 
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Unit of Measure (UOM) <span class="text-danger">*</span></label>
-                            <select name="uom" class="form-select" required>
-                                <option value="">-- Choose Unit --</option>
-                                {% for u in uoms %}
-                                <option value="{{ u.id }}">{{ u.name }} ({{ u.code }}) - {{ u.get_category_display }}</option>
-                                {% endfor %}
-                            </select>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Unit of Measure (UOM) <span class="text-danger">*</span></label>
+                                <select name="uom" class="form-select" required>
+                                    <option value="">-- Choose Unit --</option>
+                                    {% for u in uoms %}
+                                    <option value="{{ u.id }}">{{ u.name }} ({{ u.code }}) - {{ u.get_category_display }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Reorder Safety Level</label>
+                                <input type="number" step="0.001" name="reorder_level" class="form-control" value="10.000">
+                                <small class="text-muted">Triggers low-stock warning when stock drops below this.</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Initial Opening Stock</label>
+                                <input type="number" step="0.001" name="opening_stock" class="form-control" value="0.000">
+                                <small class="text-muted">Quantity currently present in storage.</small>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Reorder Safety Level</label>
-                            <input type="number" step="0.001" name="reorder_level" class="form-control" value="10.000">
-                            <small class="text-muted">Triggers low-stock warning when stock drops below this.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Initial Opening Stock</label>
-                            <input type="number" step="0.001" name="opening_stock" class="form-control" value="0.000">
-                            <small class="text-muted">Quantity currently present in storage.</small>
-                        </div>
-                    </div>
 
-                    <div class="mb-4">
-                        <label class="form-label">Initial Rate / Weighted Cost (₹ per unit)</label>
-                        <div class="input-group">
-                            <span class="input-group-text">₹</span>
-                            <input type="number" step="0.0001" name="initial_cost" class="form-control" value="0.0000" placeholder="0.0000">
+                        <div class="mb-4">
+                            <label class="form-label">Initial Rate / Weighted Cost (₹ per unit)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" step="0.0001" name="initial_cost" class="form-control" value="0.0000" placeholder="0.0000">
+                            </div>
+                            <small class="text-muted">Used for initial inventory valuation. Subsequent purchases automatically recompute WAC.</small>
                         </div>
-                        <small class="text-muted">Used for initial inventory valuation. Subsequent purchases automatically recompute WAC.</small>
-                    </div>
 
-                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                        <a href="{% url 'inventory:stock_summary' %}" class="btn btn-outline-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="bi bi-check-circle me-1"></i> Save Inventory Item
-                        </button>
-                    </div>
-                </form>
+                        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a href="{% url 'inventory:stock_summary' %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-circle me-1"></i> Save Inventory Item
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+    {% endblock %}

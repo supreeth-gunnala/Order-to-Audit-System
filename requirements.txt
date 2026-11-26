@@ -12,3 +12,4 @@ psycopg[binary]==3.2.1
 # Reports and exports
 openpyxl==3.1.5
 reportlab==5.0.0
+

@@ -240,3 +240,75 @@ def item_create(request):
         ]
     })
 
+
+@login_required
+@admin_only
+def opening_stock_create(request):
+    from django.db import transaction
+    from .models import StockMovementType
+
+    items = InventoryItem.objects.filter(
+        item_type__in=[ItemType.RAW_MATERIAL, ItemType.PACKAGING],
+        is_active=True
+    ).order_by('name')
+
+    if request.method == 'POST':
+        try:
+            item_id = request.POST.get('item')
+            quantity = Decimal(request.POST.get('quantity', '0'))
+            unit_cost = Decimal(request.POST.get('unit_cost', '0'))
+            notes = request.POST.get('notes', '').strip()
+
+            if quantity <= 0:
+                raise ValueError("Opening quantity must be greater than zero.")
+
+            if unit_cost <= 0:
+                raise ValueError("Opening cost must be greater than zero.")
+
+            with transaction.atomic():
+                item = InventoryItem.objects.select_for_update().get(
+                    id=item_id,
+                    item_type__in=[ItemType.RAW_MATERIAL, ItemType.PACKAGING],
+                    is_active=True
+                )
+
+                if item.current_stock != Decimal('0.000'):
+                    raise ValueError(
+                        "Opening stock can only be recorded when current stock is zero."
+                    )
+
+                if StockLedger.objects.filter(
+                    item=item,
+                    movement_type=StockMovementType.OPENING_BALANCE,
+                    quantity__gt=0
+                ).exists():
+                    raise ValueError("Opening stock has already been recorded for this item.")
+
+                item.weighted_avg_cost = unit_cost.quantize(Decimal('0.0001'))
+                item.save(update_fields=['weighted_avg_cost', 'updated_at'])
+
+                InventoryService.record_movement(
+                    item=item,
+                    movement_type=StockMovementType.OPENING_BALANCE,
+                    quantity=quantity,
+                    unit=item.uom,
+                    unit_cost=unit_cost,
+                    source_document='OpeningBalance',
+                    reference_id=f'OPN-{item.sku}',
+                    user=request.user,
+                    notes=notes or 'Initial opening inventory balance'
+                )
+
+            messages.success(
+                request,
+                f'Opening stock recorded: {quantity} {item.uom.code} of {item.name}.'
+            )
+            return redirect('inventory:stock_summary')
+
+        except Exception as e:
+            messages.error(request, f'Unable to record opening stock: {e}')
+
+    return render(request, 'inventory/opening_stock_create.html', {
+        'items': items
+    })
+

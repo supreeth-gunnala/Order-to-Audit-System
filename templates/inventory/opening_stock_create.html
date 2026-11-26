@@ -1,0 +1,78 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Record Opening Stock{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'inventory:stock_summary' %}">Inventory</a></li>
+<li class="breadcrumb-item active">Opening Stock</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <h4 class="fw-bold mb-1">Record Opening Stock</h4>
+                <p class="text-muted small mb-0">
+                    Enter the initial quantity and purchase cost of an existing inventory item.
+                </p>
+            </div>
+
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Important:</strong> This page is only for items with zero current stock.
+                    Once opening stock is recorded, the item cannot be selected again here.
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Inventory Item</label>
+                        <select name="item" class="form-select" required>
+                            <option value="">Select an item</option>
+                            {% for item in items %}
+                            <option value="{{ item.id }}">
+                                {{ item.name }} ({{ item.sku }}) — {{ item.current_stock }} {{ item.uom.code }}
+                            </option>
+                            {% empty %}
+                            <option value="" disabled>No active raw materials or packaging items found</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Opening Quantity</label>
+                        <input type="number" name="quantity" class="form-control"
+                               step="0.001" min="0.001" placeholder="Example: 100" required>
+                        <div class="form-text">Enter the quantity in the item's existing unit of measure.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Cost per Unit (₹)</label>
+                        <input type="number" name="unit_cost" class="form-control"
+                               step="0.0001" min="0.0001" placeholder="Example: 42" required>
+                        <div class="form-text">Enter the opening valuation cost per kg, litre, piece, etc.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Notes</label>
+                        <textarea name="notes" class="form-control" rows="3"
+                                  placeholder="Example: Initial stock available at factory"></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'inventory:stock_summary' %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i> Record Opening Stock
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

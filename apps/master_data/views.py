@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from apps.core.permissions import admin_only
 from .models import Product, ProductCategory, Customer, CustomerType, Supplier, UnitOfMeasure, UnitCategory
+from django.db import IntegrityError
 from .services import UnitConversionService
 
 
@@ -136,27 +137,80 @@ def supplier_list(request):
     return render(request, 'master_data/supplier_list.html', {'suppliers': suppliers})
 
 
+
 @login_required
 @admin_only
 def uom_list(request):
-    uoms = UnitOfMeasure.objects.all()
+    uoms = UnitOfMeasure.objects.all().order_by('category', 'code')
     converted_result = None
 
-    if request.method == 'POST' and 'convert' in request.POST:
-        try:
-            qty = Decimal(request.POST.get('quantity', '1'))
-            from_uom = UnitOfMeasure.objects.get(id=request.POST.get('from_uom'))
-            to_uom = UnitOfMeasure.objects.get(id=request.POST.get('to_uom'))
-            prod_id = request.POST.get('product')
-            prod = Product.objects.get(id=prod_id) if prod_id else None
+    if request.method == 'POST':
 
-            res = UnitConversionService.convert(qty, from_uom, to_uom, product=prod)
-            converted_result = f"{qty} {from_uom.code} = {res} {to_uom.code}"
-        except Exception as e:
-            messages.error(request, str(e))
+        if 'create' in request.POST:
+            code = request.POST.get('code', '').strip()
+            name = request.POST.get('name', '').strip()
+            category = request.POST.get('category', '').strip()
+            base_unit_id = request.POST.get('base_unit') or None
+            factor_str = request.POST.get('conversion_factor', '1').strip()
+
+            valid_categories = [choice[0] for choice in UnitCategory.choices]
+
+            if not code or not name or category not in valid_categories:
+                messages.error(request, "Please enter a valid code, name and category.")
+            else:
+                try:
+                    factor = Decimal(factor_str)
+                    if factor <= 0:
+                        raise ValueError
+                except Exception:
+                    messages.error(request, "Conversion factor must be a positive number.")
+                else:
+                    base_unit = None
+                    base_unit_valid = True
+
+                    if base_unit_id:
+                        try:
+                            base_unit = UnitOfMeasure.objects.get(id=base_unit_id)
+                        except UnitOfMeasure.DoesNotExist:
+                            messages.error(request, "Selected base unit does not exist.")
+                            base_unit_valid = False
+
+                    if base_unit_valid:
+                        if base_unit and base_unit.category != category:
+                            messages.error(request, "Base unit must belong to the same category.")
+                        else:
+                            try:
+                                UnitOfMeasure.objects.create(
+                                    code=code,
+                                    name=name,
+                                    category=category,
+                                    base_unit=base_unit,
+                                    conversion_factor=factor,
+                                )
+                                messages.success(request, f"Unit '{code}' created successfully.")
+                                return redirect('master_data:uom_list')
+                            except IntegrityError:
+                                messages.error(request, f"A unit with code '{code}' already exists.")
+
+        elif 'convert' in request.POST:
+            try:
+                qty = Decimal(request.POST.get('quantity', '1'))
+                from_uom = UnitOfMeasure.objects.get(id=request.POST.get('from_uom'))
+                to_uom = UnitOfMeasure.objects.get(id=request.POST.get('to_uom'))
+                prod_id = request.POST.get('product')
+                prod = Product.objects.get(id=prod_id) if prod_id else None
+
+                result = UnitConversionService.convert(
+                    qty, from_uom, to_uom, product=prod
+                )
+                converted_result = f"{qty} {from_uom.code} = {result} {to_uom.code}"
+
+            except Exception as e:
+                messages.error(request, str(e))
 
     return render(request, 'master_data/uom_list.html', {
         'uoms': uoms,
         'converted_result': converted_result,
-        'products': Product.objects.all()
+        'products': Product.objects.all(),
+        'unit_categories': UnitCategory.choices,
     })
