@@ -120,8 +120,8 @@ soxr==1.1.0
 SQLAlchemy==2.0.34
 sqlglot==25.3.0
 sqlparse==0.6.1
-starlette==0.38.6
-streamlit==1.58.0
+
+
 sympy==1.14.0
 tenacity==8.5.0
 threadpoolctl==3.6.0
