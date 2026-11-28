@@ -1,317 +1,487 @@
-# Order-to-Audit ERP System for Packaged Food Manufacturing
-### NIT Trichy Internship Challenge Prototype & Benchmark Implementation
+# Sri Krishna Food Products – Order-to-Audit ERP
+
+### Integrated ERP System for Packaged Food Manufacturing
+
+**Internship Project – Centre for Digital Infrastructure, National Institute of Technology Tiruchirappalli (NIT Trichy)**
 
 ---
 
 ## 1. Project Overview
-This project is an enterprise-grade **Order-to-Audit Management System** specifically designed for a small-to-medium packaged-food manufacturing enterprise producing traditional South Indian snacks (Murukku, Mixture, Chips, and Sweets). 
 
-The system unifies the entire business lifecycle into a single traceable database architecture:
-- **Sales Route & Ordering**: Salesman mobile ordering, admin review, and verification.
-- **GST Tax Compliance**: Sequential Rule 46 invoices with accurate intra-state (CGST+SGST) vs inter-state (IGST) taxation.
-- **Recipe & Batch Production**: Versioned Bill of Materials (BOM), actual ingredient consumption, yield variance alerting, packaging reconciliation, and overhead absorption.
-- **Perpetual Inventory Ledger**: Double-entry style stock ledger tracking every receipt, issue, dispatch, and scrap movement without negative inventory.
-- **Cost Accounting & Audit**: Weighted-Average Costing (WAC), cost-per-good-packet calculation, statutory management tax summaries (GSTR-1, GSTR-3B), receivables aging, and PDF/Excel/CSV exports.
+Sri Krishna Food Products – Order-to-Audit ERP is a web-based Enterprise Resource Planning system designed for a small-scale packaged food manufacturing business producing traditional South Indian snacks.
+
+The system integrates major business operations, including sales, inventory, purchasing, manufacturing, GST invoicing, customer payments, production costing and audit reporting into a centralized application.
+
+The primary objective is to reduce manual record-keeping, improve coordination between departments, monitor raw-material consumption, track production performance and provide better visibility into business operations.
+
+The application connects two major workflows:
+
+**Sales Workflow:**
+
+Salesman Order → Admin Verification → Order Approval → GST Invoice → Dispatch → Customer Payment → Receivables Reporting
+
+**Production Workflow:**
+
+Raw Material Inventory → Bill of Materials (BOM) → Production Execution → Material Consumption → Finished Goods → Costing and Yield Variance
+
+Both workflows contribute to inventory records and business reports.
 
 ---
 
 ## 2. Problem Being Solved
-Small food manufacturers often struggle with decoupled operations: salesmen take orders via WhatsApp, production supervisors estimate ingredient consumption informally, invoices are created manually with tax errors, and inventory variances go unnoticed until year-end audits. 
 
-This system solves these issues by:
-1. Connecting BOM recipes directly to real-time ingredient deductions.
-2. Flagging production yield variances and material over-consumption exceeding configurable tolerances (default 3%).
-3. Enforcing physical packaging capacity validation (e.g., carton capacity vs good output).
-4. Preventing dispatch and overselling when finished-goods inventory is insufficient.
-5. Providing an immutable audit trail and preventing silent deletions of posted invoices.
+Small food manufacturing businesses often manage sales, inventory, production and accounting-related activities separately.
+
+Common challenges include:
+
+- Sales orders being communicated through phone calls or messaging applications.
+- Manual entry of customer orders and invoices.
+- Difficulty tracking raw-material consumption during manufacturing.
+- Lack of visibility into production wastage and yield differences.
+- Difficulty calculating manufacturing cost per packet.
+- Manual preparation of sales, GST, inventory and payment reports.
+
+This ERP system aims to address these challenges by connecting business operations through a centralized database and providing role-based access to different departments.
 
 ---
 
 ## 3. Technology Stack
-- **Backend Framework**: Python 3.11, Django 5.2.19, Django REST Framework
-- **Primary Database**: PostgreSQL 18 (with `psycopg` 3.2.1)
-- **Frontend & UI**: HTML5, CSS3, JavaScript, Bootstrap 5.3, Bootstrap Icons, Chart.js 4.4
-- **Financial Arithmetic**: Python `Decimal` (zero binary floating-point rounding errors)
-- **Document Generation**: ReportLab 5.0 (for GST Tax Invoice and Audit PDFs)
-- **Data Exports**: OpenPyXL 3.1.5 (Excel `.xlsx`) and standard CSV engine
-- **Environment Management**: Python virtual environments (`venv`) and `python-dotenv`
+
+| Technology | Purpose |
+|---|---|
+| Python | Backend programming language |
+| Django 5.2 | Web application framework |
+| Django REST Framework | REST API development |
+| PostgreSQL | Relational database |
+| HTML5 | Frontend page structure |
+| CSS3 | User interface styling |
+| Bootstrap | Responsive frontend design |
+| JavaScript | Frontend interactions |
+| ReportLab | PDF document generation |
+| OpenPyXL | Excel workbook handling |
+
+### Why This Technology Stack?
+
+**Python and Django:** Django provides a structured framework for developing database-driven web applications with authentication, ORM support and security features.
+
+**PostgreSQL:** PostgreSQL provides relational data storage and transaction management for business records.
+
+**Bootstrap:** Bootstrap supports responsive user interfaces for desktop and mobile devices.
+
+**ReportLab and OpenPyXL:** These libraries support PDF document generation and Excel reporting.
+
+This technology combination provides a practical foundation for developing an integrated ERP application.
 
 ---
 
-## 4. Why This Stack Was Selected
-- **Python & Django**: Django provides a battle-tested ORM with native transaction management (`transaction.atomic`), row-level locking (`select_for_update`), and built-in CSRF/authentication security ideal for financial systems.
-- **PostgreSQL**: PostgreSQL offers strict relational constraints, ACID compliance, and concurrency controls necessary for perpetual inventory accounting.
-- **Bootstrap 5 & Mobile-First Design**: Salesmen in the field operate on mobile devices, while factory owners and accountants require comprehensive desktop dashboards. Bootstrap 5 easily supports both paradigms with a unified design system.
-- **Decimal & ReportLab**: Eliminates financial rounding inaccuracies and delivers pixel-perfect, printable GST invoices compliant with statutory standards.
+## 4. System Architecture
 
----
+The project follows a modular Django application structure. Each application handles a specific business area.
 
-## 5. System Architecture
-The application uses Domain-Driven Design (DDD) split into six decoupled apps:
-- `apps.core`: Custom User model, Role-Based Access Control (RBAC), context processors, and immutable `AuditLog`.
-- `apps.master_data`: Product catalog, customer & distributor profiles, supplier master, and centralized unit conversion service.
-- `apps.inventory`: Perpetual inventory items, `StockLedger`, purchase receipts, and Weighted-Average Costing.
-- `apps.production`: Bill of Materials (BOM), `ProductionRun` execution, variance analysis engine, and product costing.
-- `apps.sales`: Sales orders, GST invoice generation, finished goods dispatch, and customer payment allocations.
-- `apps.reports`: Statutory GST summaries (GSTR-1, GSTR-3B), production costing sheets, receivables aging, and export engines.
+### Django Applications
 
-```
-Order-to-Audit System/
+| Application | Responsibility |
+|---|---|
+| `apps.core` | User authentication, role management and dashboard functionality |
+| `apps.master_data` | Products, customers, suppliers and units of measurement |
+| `apps.inventory` | Inventory items, stock balances, purchases and stock movements |
+| `apps.production` | Bill of Materials, production runs and manufacturing costing |
+| `apps.sales` | Sales orders, invoices, dispatches and customer payments |
+| `apps.reports` | Audit reports, GST summaries, costing and receivables reporting |
+
+### Project Directory Structure
+
+```text
+Order-to-Audit-System/
+│
 ├── apps/
-│   ├── core/                  # RBAC, User model, Audit Trail, Dashboard
-│   ├── master_data/           # Products, Customers, Suppliers, UOM Conversions
-│   ├── inventory/             # Items, Purchases, StockLedger, WAC Engine
-│   ├── production/            # BOMs, Batch Runs, Yield & Oil Variances, Costing
-│   ├── sales/                 # Orders, GST Invoices, Dispatches, Payments, PDF
-│   └── reports/               # GSTR-1, GSTR-3B, Costing, Aging, Exporters
-├── config/                    # Django project configuration & settings
-├── templates/                 # Premium responsive Bootstrap 5 templates
-├── static/                    # CSS & JS assets
-├── requirements.txt           # Python dependency definitions
-├── manage.py                  # Django CLI runner
-├── DESIGN.md                  # Two-page architectural specification & ER diagram
-├── DEMO_SCRIPT.md             # 8-minute video presentation script
-└── README.md                  # Master documentation
+│   ├── core/
+│   ├── inventory/
+│   ├── master_data/
+│   ├── production/
+│   ├── reports/
+│   └── sales/
+│
+├── templates/
+├── static/
+├── manage.py
+├── requirements.txt
+├── .env
+└── README.md
 ```
 
----
-
-## 6. Database Overview
-The PostgreSQL database consists of 18 relational tables:
-- **Users & Auth**: `core_user`, `core_auditlog`
-- **Master Data**: `master_data_unitofmeasure`, `master_data_productcategory`, `master_data_product`, `master_data_customer`, `master_data_supplier`, `master_data_pricelist`
-- **Inventory**: `inventory_inventoryitem`, `inventory_stockledger`, `inventory_purchase`, `inventory_purchaseitem`
-- **Production**: `production_billofmaterials`, `production_bomcomponent`, `production_productionrun`, `production_productionconsumption`
-- **Sales & Billing**: `sales_salesorder`, `sales_salesorderitem`, `sales_invoice`, `sales_invoiceitem`, `sales_dispatch`, `sales_dispatchitem`, `sales_payment`, `sales_paymentallocation`, `sales_creditnote`
+The `.env` file contains environment-specific settings and must not be committed to the public repository.
 
 ---
 
-## 7. Features Implemented
+## 5. Features Implemented
 
-### Sales & Distribution
-- Mobile-first order booking interface for field salesmen.
-- Automatic price determination with support for custom customer price books.
-- Real-time subtotal, GST estimate, and order total calculation.
-- Admin order verification, inline item editing, approval, and rejection workflows.
-- Sequential GST invoice numbering by financial year (e.g. `INV-2627-0001`).
-- Accurate tax classification:
-  - Intra-state (Tamil Nadu to Tamil Nadu): CGST 2.5% + SGST 2.5%.
-  - Inter-state (Tamil Nadu to Karnataka): IGST 5.0%.
-- PDF Tax Invoice generation using ReportLab compliant with GST Rule 46.
-- Lawful invoice cancellation via formal `CreditNote` workflow (original invoice retained intact).
-- Dispatch control checking actual finished-goods stock and blocking overselling.
-- Customer payment recording with multi-invoice allocation and real-time outstanding tracking.
+### 5.1 Sales Management
 
-### BOM & Manufacturing Execution
-- Reusable, versioned Bill of Materials (BOM) with batch multiplier support.
-- Real-time stock consumption deduction for raw materials and packaging.
-- Separation of good pouches used vs damaged pouches recorded as scrap.
-- Packaging capacity reconciliation: flags capacity warnings when outer cartons cannot hold actual output.
-- Consumption variance calculation against standard recipe.
-- Yield variance calculation against expected batch output.
-- Automatic alert banners when variances breach the configurable tolerance (default 3%).
-- Unit manufacturing absorption costing: direct materials + labour + overhead = cost per good packet.
+- Salesman login and customer order booking.
+- Customer and product selection.
+- Sales order creation and tracking.
+- Factory Admin order verification.
+- Order approval and processing.
+- GST invoice generation.
+- Order dispatch management.
+- Customer payment recording.
 
-### Perpetual Inventory & Cost Accounting
-- Centralized unit conversion service preventing incompatible unit mixing.
-- Weighted-Average Costing (WAC) recalculated atomically upon every purchase receipt.
-- Atomic stock movements via `StockLedger` with balance before and balance after traceability.
-- Prevention of negative inventory balances via database row locks (`select_for_update`).
-- Live stock summary separating Raw Materials, Packaging, and Finished Goods.
+### 5.2 Master Data Management
 
-### Audit & Reporting
-- Executive Owner Dashboard with live KPI counters and interactive Chart.js analytics.
-- Statutory GSTR-1 outward taxable supplies summary (B2B, B2C, HSN table).
-- Statutory GSTR-3B Section 3.1 outward tax summary.
-- Customer receivables aging report broken into 0–30, 31–60, 61–90, and >90 day brackets.
-- One-click exports of all reports to CSV, Excel (`.xlsx`), and PDF.
-- Immutable system audit trail logging user, entity, action, previous value, new value, and reason.
+- Product management.
+- Product category management.
+- Unit of Measurement (UOM) management.
+- Customer management.
+- Supplier management.
+- Raw-material and packaging-item management.
+
+### 5.3 Inventory Management
+
+- Opening stock management.
+- Raw-material inventory tracking.
+- Packaging-material inventory tracking.
+- Finished-goods inventory tracking.
+- Weighted Average Cost (WAC) valuation.
+- Stock balances and valuation.
+- Stock movement ledger.
+- Purchase and goods receipt records.
+- Inventory movement tracking for production and dispatch.
+
+### 5.4 Production Management
+
+- Bill of Materials (BOM) creation.
+- Recipe-based production planning.
+- Production batch execution.
+- Actual material consumption recording.
+- Finished-product output recording.
+- Damaged packaging and wastage recording.
+- Labour and manufacturing overhead recording.
+- Production run history.
+- Planned versus actual production comparison.
+- Yield variance monitoring.
+- Configurable production variance tolerance.
+
+### 5.5 GST Invoicing and Payments
+
+- GST invoice generation.
+- Taxable value calculation.
+- GST calculation.
+- CGST and SGST for applicable intra-state transactions.
+- Customer payment recording.
+- Outstanding payment tracking.
+- Invoice and payment reference management.
+
+### 5.6 Audit and Compliance Reports
+
+The Accountant / Auditor role provides access to the following modules:
+
+**Inventory & Stock**
+- Stock Balances (WAC)
+- Stock Movement Ledger
+- Purchases & Receipts
+
+**Audit & Compliance**
+- Audit Command Center
+- Sales Register
+- GSTR-1 Outward Supplies
+- Costing & Yield Variance
+- Receivables Ageing
+
+These reports support inventory review, sales verification, GST reporting, production cost analysis and customer outstanding monitoring.
+
+### 5.7 Owner Dashboard
+
+- Executive business overview.
+- Sales information.
+- Inventory information.
+- Production performance.
+- Outstanding receivables.
+- Operational monitoring.
 
 ---
 
-## 8. Role Descriptions & Access Control
+## 6. User Roles and Access Control
 
-| Role | Permitted Operations | Restricted Operations |
+The application implements role-based access control to provide different functionalities according to user responsibilities.
+
+| Role | Username | Main Responsibilities |
 |---|---|---|
-| **Salesman** | Mobile order entry, assigned customer view, order status, personal order history | Cannot access factory admin, production, or audit reports |
-| **Factory Admin** | Review/edit incoming orders, approve/reject orders, generate GST invoices, record dispatch, record customer payments, manage master data | Cannot tamper with closed audit ledger entries |
-| **Production Supervisor**| View raw material & packaging stock, record inward purchases, execute production runs, record consumption & output, view variance alerts | Cannot modify sales orders, invoices, or financial ledgers |
-| **Accountant / Auditor** | Read-only access to all reports, sales register, GSTR-1, GSTR-3B, production costing, stock ledger, export to CSV/Excel/PDF | Strict read-only mode; cannot alter or delete transactions |
-| **Factory Owner** | Executive dashboard, real-time KPI metrics, sales vs cost analytics, inventory valuation, receivables summary, all audit logs | Executive overview of all factory performance |
+| Factory Admin | `factory_admin` | Master data, inventory, order approval, invoicing, dispatch and payments |
+| Salesman | `salesman_a` | Customer order booking and order tracking |
+| Production Supervisor | `production_sup` | BOM management and production execution |
+| Accountant / Auditor | `auditor` | Inventory review, costing and audit reports |
+| Owner | `owner` | Executive dashboard and business monitoring |
+
+Each role has access to its relevant application modules and operations.
 
 ---
 
-## 9. Feature Status Matrix
+## 7. Demonstration Scenario
 
-### Must-Have Features (Completed: 100%)
-- [x] Multi-role authentication & backend permission decorators
-- [x] Master data CRUD (Products, Customers, Suppliers, Units)
-- [x] Reusable BOM with versioning
-- [x] Weighted-Average Costing (WAC) on purchase receipts
-- [x] Production run execution with actual consumption recording
-- [x] Planned vs actual material variance calculation & alerts
-- [x] Expected vs actual yield variance calculation & alerts
-- [x] Packaging damage and capacity warning reconciliation
-- [x] Salesman mobile order entry
-- [x] Admin order review & inline item modification
-- [x] GST Tax Invoicing (CGST+SGST vs IGST)
-- [x] Controlled dispatch with shortage detection & prevention of negative stock
-- [x] Customer payment receipt & outstanding balance tracking
-- [x] PDF Tax Invoice download via ReportLab
-- [x] Perpetual Stock Movement Ledger
-- [x] Statutory reports: Sales Register, GSTR-1 Summary, GSTR-3B Summary, Production Costing, Receivables Aging
-- [x] Multi-format exports: CSV, Excel, PDF
+The project uses a South Indian snack manufacturing scenario based on Murukku 200 g.
 
-### Should-Have Features (Completed: 100%)
-- [x] Interactive Chart.js analytics on Owner Dashboard
-- [x] One-click demo credential switcher on login page
-- [x] Automated unit conversion calculator tool in UI
-- [x] Credit Note cancellation workflow retaining original invoices
-- [x] Comprehensive automated test suite validating items A through S
+### Product Information
 
-### Stretch Goals (Status)
-- [x] Centralized unit conversion service for cartons to packets
-- [x] Multi-format report export suite (CSV + Excel + PDF)
-- [ ] Offline PWA service-worker order capture (stretch goal omitted to prioritize core reliability)
+| Field | Value |
+|---|---|
+| Product Name | Murukku 200 g |
+| SKU | MUR-200 |
+| Category | Traditional Savouries |
+| Selling Price | ₹50 per packet |
+| GST Rate | 5% |
+| HSN Code | 19059040 |
+
+### Production Scenario
+
+The demonstration includes two production runs.
+
+| Production Run | Good Output | Production Cost | Cost per Packet |
+|---|---:|---:|---:|
+| PR-2627-0001 | 186 packets | ₹5,735 | ₹30.83 |
+| PR-2627-0002 | 200 packets | ₹5,620 | ₹28.10 |
+| **Total** | **386 packets** | **₹11,355** | **Approximately ₹29.42 weighted average** |
+
+The first production run recorded a yield variance of -7%, exceeding the configured 3% tolerance.
+
+The second production run recorded 0% yield variance.
+
+### Sales Scenario
+
+A sales order is created for Retailer A for 150 packets of Murukku.
+
+| Particular | Amount |
+|---|---:|
+| Quantity | 150 packets |
+| Taxable Value | ₹7,500 |
+| CGST | ₹187.50 |
+| SGST | ₹187.50 |
+| Invoice Total | ₹7,875 |
+| Payment Received | ₹4,000 |
+| Outstanding Amount | ₹3,875 |
+
+The sales workflow demonstrates order booking, approval, GST invoicing, dispatch and payment recording.
 
 ---
 
-## 10. Local Setup Instructions (Without Docker)
+## 8. Benchmark Differences and Assumptions
+
+The internship problem statement specifies a benchmark scenario with one production run, an opening finished-goods balance of 50 packets, 188 good packets produced and 10.5 litres of oil consumed.
+
+The current demonstration dataset differs from that benchmark.
+
+| Benchmark Requirement | Current Demonstration |
+|---|---|
+| Opening finished goods: 50 packets | Opening finished goods: 0 packets |
+| One production run | Two production runs |
+| First-run output: 188 packets | First-run output: 186 packets |
+| Oil consumption: 10.5 litres | First-run consumption: 10 litres |
+| Expected yield: 200 packets | Expected yield: 200 packets |
+| Retailer A order: 150 packets | Retailer A order: 150 packets |
+
+The recorded production runs generated 386 packets in total.
+
+After dispatching 150 packets, the stock movement ledger indicates 236 packets remaining.
+
+The weighted average production cost across the two recorded runs is approximately ₹29.42 per packet.
+
+These figures represent the current demonstration dataset and are not an exact reproduction of every benchmark result.
+
+### Known Inventory Valuation Limitation
+
+During demonstration validation, a discrepancy was identified between the finished-goods stock movement ledger and the finished-goods valuation displayed in the stock summary and executive dashboard.
+
+The ledger indicates 236 packets remaining after dispatch, while the stock summary and dashboard display finished-goods value as ₹0.
+
+This requires further investigation and reconciliation before the finished-goods valuation can be treated as fully verified.
+
+---
+
+## 9. Stock Valuation and Production Costing
+
+### Weighted Average Costing (WAC)
+
+The system uses the Weighted Average Cost method for inventory valuation.
+
+The calculation is:
+
+**Weighted Average Cost = (Existing Stock Value + Purchase Value) / (Existing Stock Quantity + Purchased Quantity)**
+
+This method calculates an average unit cost after stock receipts.
+
+### Production Costing
+
+Manufacturing cost includes:
+
+- Direct raw-material cost.
+- Packaging-material cost.
+- Labour cost.
+- Manufacturing overheads such as gas and electricity.
+
+The cost per good packet is calculated as:
+
+**Cost per Packet = Total Production Cost / Actual Good Output**
+
+The production costing module helps compare manufacturing costs and identify production losses and yield differences.
+
+---
+
+## 10. Installation and Setup
 
 ### Prerequisites
-- Python 3.11 or higher installed on your system.
-- PostgreSQL 14+ installed and running locally on port 5432.
 
-### Step 1: Clone or Navigate to Project Directory
-```powershell
-cd "C:\Users\user\Documents\Order-to-Audit System"
+- Python 3.11 or later.
+- PostgreSQL database.
+- Git.
+- pip.
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/supreeth-gunnala/Order-to-Audit-System.git
 ```
 
-### Step 2: Configure Environment Variables
-Verify `.env` in the project root:
-```ini
-SECRET_KEY=django-insecure-order-to-audit-nit-trichy-challenge-super-secret-key-2026
-DEBUG=True
-ALLOWED_HOSTS=*
-DB_ENGINE=django.db.backends.postgresql
-DB_NAME=ordertoaudit
-DB_USER=postgres
-DB_PASSWORD=1234
-DB_HOST=localhost
-DB_PORT=5432
-FACTORY_STATE=Tamil Nadu
-FACTORY_GSTIN=33AAAAA0000A1Z5
-FACTORY_NAME=Sri Krishna Food Products
-FACTORY_ADDRESS=Plot 12, SIDCO Industrial Estate, Thuvakudi, Trichy - 620015, Tamil Nadu
+### Step 2: Navigate to the Project Directory
+
+```bash
+cd Order-to-Audit-System
 ```
 
-### Step 3: Install Python Dependencies
+### Step 3: Create a Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+Activate the environment on Windows:
+
 ```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+### Step 4: Install Dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Step 4: Apply Database Migrations
-```powershell
+### Step 5: Configure Environment Variables
+
+Create a `.env` file in the project root.
+
+Configure the PostgreSQL connection using your own database details.
+
+Example:
+
+```env
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=your_database_name
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
+DB_HOST=your_database_host
+DB_PORT=5432
+```
+
+Configure other required Django settings according to the project's settings module.
+
+**Important:** Never publish database passwords, secret keys or private connection strings in GitHub.
+
+### Step 6: Apply Database Migrations
+
+```bash
 python manage.py migrate
 ```
 
-### Step 5: Seed Master Data & Run Benchmark Scenario
-```powershell
-# 1. Seed initial demo users, master product, customers, opening stock, and BOM:
-python manage.py seed_benchmark
+### Step 7: Create an Administrator Account
 
-# 2. Execute and verify the complete 9-step benchmark scenario end-to-end:
-python manage.py run_benchmark_scenario --reset
+```bash
+python manage.py createsuperuser
 ```
 
-### Step 6: Start the Development Server
-```powershell
-python manage.py runserver 8000
+### Step 8: Run the Development Server
+
+```bash
+python manage.py runserver
 ```
-Open your browser and navigate to: `http://localhost:8000/`
+
+Open the application in your browser:
+
+```text
+http://127.0.0.1:8000/
+```
+
+For a fresh database, configure the required user roles and master data before using the business workflows.
 
 ---
 
-## 11. Demo Login Credentials
+## 11. Demonstration Login Credentials
 
-The login page at `http://localhost:8000/login/` features **one-click demo login buttons** for evaluator convenience. All demo accounts use the standard password: `pass1234`
+The prepared demonstration database contains the following accounts.
 
-| Username | Role | Purpose / Views |
-|---|---|---|
-| `salesman_a` | Salesman | Mobile order booking, assigned customers (Retailer A - Tamil Nadu) |
-| `salesman_b` | Salesman | Mobile order booking, assigned customers (Distributor B - Karnataka) |
-| `factory_admin` | Factory Admin | Order approvals, GST invoicing, dispatch, payments, master data |
-| `production_sup`| Production Supervisor| Inward purchase receipts, BOM recipes, production runs, variance review |
-| `auditor` | Accountant / Auditor | Read-only access to all registers, GSTR-1, GSTR-3B, costing, aging, exports |
-| `owner` | Factory Owner | Executive dashboard, live KPI cards, sales vs cost analytics |
+All five demonstration accounts use the same temporary demonstration password.
 
----
+**Password:** `pass1234`
 
-## 12. Benchmark Verification Results
+| Username | Role |
+|---|---|
+| `factory_admin` | Factory Admin |
+| `salesman_a` | Salesman |
+| `production_sup` | Production Supervisor |
+| `auditor` | Accountant / Auditor |
+| `owner` | Owner |
 
-The application demonstrates and validates all 9 benchmark steps with 100% mathematical precision:
+These credentials are intended only for the prepared demonstration environment. Change them before any public or production deployment.
 
-| Step | Operation | System Execution & Output | Benchmark Requirement | Status |
-|---|---|---|---|---|
-| **Step 1** | Purchase 60 kg flour @ ₹45/kg | Flour stock: 100 + 60 = 160 kg. WAC = (100×42 + 60×45)/160 = ₹43.1250/kg | 160 kg @ ₹43.1250/kg | **PASS** |
-| **Step 2** | Murukku 200g Production Run | Issued: Flour 40 kg, Oil 10.5 L, Spice 1.2 kg. Actual good output: 188 pkts. Pouches damaged: 6. Cartons: 9 | 188 good pkts, 6 damaged, 9 cartons | **PASS** |
-| **Step 3** | Closing Inventory Balances | Flour: 120 kg, Oil: 19.5 L, Spice: 3.8 kg, Pouches: 306 pcs, Cartons: 21 pcs, FG: 238 pkts | Exact match across all balances | **PASS** |
-| **Step 3b**| Production Variances | Yield: -6.00% (Flagged). Oil: +5.00% (Flagged). Packaging Warning: 9 cartons hold 180 pkts (< 188) | Flagged > 3% tolerance + capacity warning | **PASS** |
-| **Step 4** | Salesman A Order (Retailer A) | Order SO-BENCH-001 submitted for 150 pkts @ ₹50 | Subtotal ₹7,500, Tax ₹375 | **PASS** |
-| **Step 5** | Admin Approval & Invoicing | Invoice INV-2627-0001: Taxable ₹7,500, CGST ₹187.50, SGST ₹187.50, Total ₹7,875 | Intra-state CGST + SGST = ₹7,875 | **PASS** |
-| **Step 5b**| Order Dispatch | Dispatched 150 pkts. Finished Goods stock: 238 - 150 = 88 packets | Closing FG = 88 packets | **PASS** |
-| **Step 6** | Distributor B Shortage Check | Order for 120 pkts. Stock: 88 pkts. Shortage: 32 pkts. Dispatch blocked to prevent negative inventory | Invalid dispatch prevented & shortage flagged | **PASS** |
-| **Step 7** | Customer Payment Receipt | Received ₹4,000 from Retailer A. Outstanding due: ₹7,875 - ₹4,000 = ₹3,875 | Outstanding = ₹3,875 | **PASS** |
-| **Step 8** | Production Costing | Materials: ₹4,055 + Labour: ₹1,200 + Overhead: ₹600 = ₹5,855. Cost/Pkt: ₹5,855 / 188 = ₹31.14 | Total ₹5,855; Cost/Pkt ₹31.14 | **PASS** |
-| **Step 9** | Monthly Reports Validation | Sales Register, GSTR-1, GSTR-3B, Costing, Receivables Ageing generated from stored transactions | Fully reconciled & exportable | **PASS** |
+A fresh database created using the installation instructions will require its own user and master-data setup.
 
 ---
 
-## 13. Automated Test Execution & Results
+## 12. Project Links
 
-Run the automated test suite using Django's test framework:
-```powershell
-python manage.py test
-```
+**GitHub Repository**
 
-### Actual Test Suite Execution Output
-```
-Creating test database for alias 'default'...
-........
-----------------------------------------------------------------------
-Ran 8 tests in 70.904s
+https://github.com/supreeth-gunnala/Order-to-Audit-System
 
-OK
-Destroying test database for alias 'default'...
-Found 8 test(s).
-System check identified no issues (0 silenced).
-```
+**Live Application**
 
-### Verified Test Cases Breakdown
-- `test_a_weighted_average_flour_valuation`: Validates purchase calculation and WAC adjustment to ₹43.1250/kg.
-- `test_b_through_j_production_and_variances`: Validates exact closing stocks (120 kg flour, 19.5 L oil, 3.8 kg spice, 306 pouches, 21 cartons, 238 FG), yield variance (-6%), oil variance (+5%), and costing (₹5,855 total, ₹31.14/pkt).
-- `test_k_gst_invoicing_and_dispatch`: Validates sequential invoicing, CGST/SGST tax math, dispatch stock reduction to 88 packets, and partial payment reconciliation.
-- `test_m_distributor_b_shortage_validation`: Asserts that an invalid dispatch for 120 packets against 88 available raises a `ValidationError` and preserves stock balance.
-- `test_o_role_permissions`: Validates that salesmen are blocked (HTTP 403) from administrative audit trail endpoints.
-- `test_p_credit_note_workflow`: Validates lawful invoice cancellation via credit note.
-- `test_q_stock_ledger_reconciliation`: Validates that ledger `balance_before` and `balance_after` match current stock.
-- `test_r_duplicate_dispatch_prevention`: Asserts that an already-dispatched order cannot be dispatched again.
+https://order-to-audit-system-tan.vercel.app
+
+**Project Demonstration Video**
+
+https://youtu.be/YoP74DsE0j8?si=cBbKkTnL5R7fQ3E3
 
 ---
 
-## 14. Stock Valuation & Costing Methodology
-1. **Weighted Average Costing (WAC)**:
-   Whenever an inward purchase receipt is posted, the new unit cost is computed as:
-   $$\text{WAC} = \frac{\text{Current Stock Value} + \text{Purchase Amount}}{\text{Current Stock Quantity} + \text{Purchase Quantity}}$$
-2. **Absorption Costing for Production**:
-   Direct materials are issued at their current WAC. Direct manufacturing labour and utility overheads (power/gas) are absorbed into the batch. The unit cost per good packet is determined by dividing total batch manufacturing cost by actual good output packets. Damaged pouches and unboxed overflows are recognized as direct manufacturing scrap.
+## 13. Known Limitations and Future Enhancements
+
+The following areas can be improved in future versions:
+
+- Reconciliation of finished-goods valuation across inventory reports and the dashboard.
+- Further validation of the complete internship benchmark scenario.
+- Dedicated Profit and Loss reporting.
+- Additional automated tests for stock calculations, GST and production costing.
+- Improved offline order capture and synchronization.
+- Batch number and expiry-date tracking.
+- Low-stock alerts and reorder-level management.
+- Production planning based on pending customer orders.
+- Further improvements to accounting and audit exports.
 
 ---
 
-## 15. Key Engineering Assumptions & Notes
-1. **Packaging Capacity Inconsistency**:
-   Standard outer cartons hold 20 packets. 9 cartons can hold 180 packets, whereas actual good output is 188 packets. As instructed, 9 cartons are deducted from inventory (leaving 21 cartons), and the application displays an explicit packaging capacity warning explaining the 8-packet overflow.
-2. **Place of Supply**:
-   The factory is registered in Tamil Nadu (State Code 33). Supplies to customers in Tamil Nadu are treated as intra-state (CGST 2.5% + SGST 2.5%). Supplies to customers in other states (e.g. Karnataka) are treated as inter-state (IGST 5.0%).
-3. **No Silent Deletions**:
-   Posted invoices are never deleted. Cancellation is handled lawfully via a formal credit note workflow.
+## 14. Conclusion
+
+Sri Krishna Food Products – Order-to-Audit ERP demonstrates how different operational activities of a small food manufacturing business can be integrated through a centralized web application.
+
+By connecting sales, inventory, purchasing, production, GST invoicing, customer payments and audit reporting, the system aims to reduce manual work, improve operational visibility and support better business decisions.
+
+The project provided practical experience in Python, Django, PostgreSQL, database management, role-based access control, business workflow design and ERP application development.
+
+---
+
+**Project Type:** Individual Internship Project
+
+**Institution:** National Institute of Technology Tiruchirappalli (NIT Trichy)
+
+**Centre:** Centre for Digital Infrastructure
+
+**Project:** Sri Krishna Food Products – Order-to-Audit ERP
